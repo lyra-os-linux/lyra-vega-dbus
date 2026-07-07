@@ -1,0 +1,66 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Software">
+    <!-- PackageRef struct: (origin, id, name, description, installed)
+         origin -> "official" | "flathub" | "aur" -->
+
+    <method name="Search">
+      <!-- polkit: none (read-only) -->
+      <arg name="query" type="s" direction="in"/>
+      <arg name="results" type="a(ssssb)" direction="out"/>
+    </method>
+
+    <method name="Install">
+      <!-- polkit: org.lyraos.vega.software.install -->
+      <arg name="origin" type="s" direction="in"/>
+      <arg name="id" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <method name="Remove">
+      <!-- polkit: org.lyraos.vega.software.remove -->
+      <arg name="origin" type="s" direction="in"/>
+      <arg name="id" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <method name="ListUpdates">
+      <!-- polkit: none (read-only) -->
+      <arg name="results" type="a(ssssb)" direction="out"/>
+    </method>
+
+    <method name="UpdateAll">
+      <!-- polkit: org.lyraos.vega.software.update -->
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <method name="ListRepos">
+      <!-- polkit: none (read-only) -->
+      <arg name="repos" type="as" direction="out"/>
+    </method>
+
+    <method name="SetRepoEnabled">
+      <!-- polkit: org.lyraos.vega.software.manage-repos -->
+      <arg name="repo" type="s" direction="in"/>
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
+    <method name="ClearCache">
+      <!-- polkit: org.lyraos.vega.software.clear-cache -->
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <signal name="TransactionProgress">
+      <arg name="transactionId" type="u"/>
+      <arg name="percent" type="u"/>
+      <arg name="message" type="s"/>
+    </signal>
+
+    <signal name="TransactionFinished">
+      <arg name="transactionId" type="u"/>
+      <arg name="success" type="b"/>
+      <arg name="message" type="s"/>
+    </signal>
+  </interface>
+</node>

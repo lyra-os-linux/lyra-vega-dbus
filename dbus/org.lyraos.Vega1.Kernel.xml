@@ -1,0 +1,22 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Kernel">
+    <method name="ListInstalled">
+      <!-- polkit: none (read-only) -->
+      <arg name="kernels" type="as" direction="out"/>
+    </method>
+
+    <method name="Install">
+      <!-- polkit: org.lyraos.vega.kernel.switch -->
+      <arg name="kernel" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <method name="Remove">
+      <!-- polkit: org.lyraos.vega.kernel.switch -->
+      <!-- must refuse: running kernel, or last remaining kernel -->
+      <arg name="kernel" type="s" direction="in"/>
+    </method>
+  </interface>
+</node>

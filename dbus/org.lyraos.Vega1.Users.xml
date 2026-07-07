@@ -1,0 +1,29 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Users">
+    <!-- UserInfo struct: (username, isAdmin) -->
+
+    <method name="ListUsers">
+      <!-- polkit: none (read-only) -->
+      <arg name="users" type="a(sb)" direction="out"/>
+    </method>
+
+    <method name="CreateUser">
+      <!-- polkit: org.lyraos.vega.users.manage -->
+      <arg name="username" type="s" direction="in"/>
+      <arg name="isAdmin" type="b" direction="in"/>
+    </method>
+
+    <method name="RemoveUser">
+      <!-- polkit: org.lyraos.vega.users.manage -->
+      <arg name="username" type="s" direction="in"/>
+    </method>
+
+    <method name="SetAdmin">
+      <!-- polkit: org.lyraos.vega.users.manage -->
+      <arg name="username" type="s" direction="in"/>
+      <arg name="isAdmin" type="b" direction="in"/>
+    </method>
+  </interface>
+</node>

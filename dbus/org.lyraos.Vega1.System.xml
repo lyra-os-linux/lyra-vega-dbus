@@ -1,0 +1,14 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.System">
+    <!-- No polkit action: used by the UI to detect vegad presence/version
+         before touching any privileged module. -->
+    <method name="Version">
+      <arg name="version" type="s" direction="out"/>
+    </method>
+    <method name="Ping">
+      <arg name="alive" type="b" direction="out"/>
+    </method>
+  </interface>
+</node>
