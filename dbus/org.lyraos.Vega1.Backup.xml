@@ -2,18 +2,18 @@
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node name="/org/lyraos/Vega1">
   <interface name="org.lyraos.Vega1.Backup">
-    <!-- BackupConfig struct: (id, paths, destination, frequency) -->
+    <!-- BackupConfig struct: (id, paths, destination, destinationUUID, frequency) -->
     <!-- BackupSnapshotInfo struct: (id, timestampUnix, fileCount, sizeBytes) -->
 
     <method name="CreateConfig">
       <!-- polkit: org.lyraos.vega.backup.configure -->
-      <arg name="config" type="(sass)" direction="in"/>
+      <arg name="config" type="(sassss)" direction="in"/>
       <arg name="configId" type="s" direction="out"/>
     </method>
 
     <method name="ListConfigs">
       <!-- polkit: none (read-only) -->
-      <arg name="configs" type="a(sass)" direction="out"/>
+      <arg name="configs" type="a(sassss)" direction="out"/>
     </method>
 
     <method name="RunBackupNow">
@@ -28,12 +28,29 @@
       <arg name="snapshots" type="a(sxtt)" direction="out"/>
     </method>
 
+    <method name="ListSnapshotPaths">
+      <!-- polkit: none (read-only) -->
+      <arg name="configId" type="s" direction="in"/>
+      <arg name="snapshotId" type="s" direction="in"/>
+      <arg name="paths" type="as" direction="out"/>
+    </method>
+
     <method name="RestoreSnapshot">
       <!-- polkit: org.lyraos.vega.backup.restore -->
       <!-- mode: "replace" | "separate-folder" -->
       <arg name="snapshotId" type="s" direction="in"/>
       <arg name="targetPath" type="s" direction="in"/>
       <arg name="mode" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <method name="RestoreItems">
+      <!-- polkit: org.lyraos.vega.backup.restore -->
+      <!-- mode: "replace" | "separate-folder" -->
+      <arg name="snapshotId" type="s" direction="in"/>
+      <arg name="targetPath" type="s" direction="in"/>
+      <arg name="mode" type="s" direction="in"/>
+      <arg name="paths" type="as" direction="in"/>
       <arg name="transactionId" type="u" direction="out"/>
     </method>
 
@@ -63,6 +80,12 @@
     <signal name="RestoreFinished">
       <arg name="transactionId" type="u"/>
       <arg name="success" type="b"/>
+      <arg name="message" type="s"/>
+    </signal>
+
+    <signal name="BackupAlert">
+      <arg name="configId" type="s"/>
+      <arg name="consecutiveFailures" type="u"/>
       <arg name="message" type="s"/>
     </signal>
   </interface>
