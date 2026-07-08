@@ -62,5 +62,11 @@
       <arg name="success" type="b"/>
       <arg name="message" type="s"/>
     </signal>
+
+    <signal name="UpdatesAvailable">
+      <!-- emitted by vegad-update-check.timer (every 4h) when ListUpdates
+           would return at least one pending update -->
+      <arg name="count" type="u"/>
+    </signal>
   </interface>
 </node>
