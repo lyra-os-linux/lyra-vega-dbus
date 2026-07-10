@@ -2,13 +2,13 @@
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node name="/org/lyraos/Vega1">
   <interface name="org.lyraos.Vega1.Software">
-    <!-- PackageRef struct: (origin, id, name, description, installed)
+    <!-- PackageRef struct: (origin, id, name, description, installed, icon)
          origin -> "official" | "flathub" | "aur" -->
 
     <method name="Search">
       <!-- polkit: none (read-only) -->
       <arg name="query" type="s" direction="in"/>
-      <arg name="results" type="a(ssssb)" direction="out"/>
+      <arg name="results" type="a(ssssbs)" direction="out"/>
     </method>
 
     <method name="Install">
@@ -27,7 +27,12 @@
 
     <method name="ListUpdates">
       <!-- polkit: none (read-only) -->
-      <arg name="results" type="a(ssssb)" direction="out"/>
+      <arg name="results" type="a(ssssbs)" direction="out"/>
+    </method>
+
+    <method name="ListInstalled">
+      <!-- polkit: none (read-only) -->
+      <arg name="results" type="a(ssssbs)" direction="out"/>
     </method>
 
     <method name="UpdateAll">
