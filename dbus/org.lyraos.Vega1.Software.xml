@@ -51,6 +51,11 @@
       <arg name="transactionId" type="u" direction="out"/>
     </method>
 
+    <method name="OptimizeMirrors">
+      <!-- polkit: org.lyraos.vega.software.manage-repos -->
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
     <signal name="TransactionProgress">
       <arg name="transactionId" type="u"/>
       <arg name="percent" type="u"/>

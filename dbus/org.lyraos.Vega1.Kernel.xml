@@ -18,5 +18,22 @@
       <!-- must refuse: running kernel, or last remaining kernel -->
       <arg name="kernel" type="s" direction="in"/>
     </method>
+
+    <method name="BootStatus">
+      <!-- polkit: none (read-only) -->
+      <arg name="status" type="(ssus)" direction="out"/>
+    </method>
+
+    <method name="ListBootEntries">
+      <!-- polkit: none (read-only) -->
+      <arg name="entries" type="as" direction="out"/>
+    </method>
+
+    <method name="ApplyBootConfig">
+      <!-- polkit: org.lyraos.vega.kernel.switch -->
+      <arg name="defaultEntry" type="s" direction="in"/>
+      <arg name="timeout" type="u" direction="in"/>
+      <arg name="cmdline" type="s" direction="in"/>
+    </method>
   </interface>
 </node>
