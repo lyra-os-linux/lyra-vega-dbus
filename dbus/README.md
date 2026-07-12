@@ -7,4 +7,4 @@ implementação Go vive em `vegad/internal/dbusserver/*.go` e deve ser mantida
 em sincronia com estes arquivos.
 
 Cada método aqui mapeia a uma action polkit granular em
-`packaging/vegad/org.lyraos.vega.policy` (ver `PROMPT-VEGA.md` §2.2).
+`packaging/vegad/org.lyraos.vega.policy`.
