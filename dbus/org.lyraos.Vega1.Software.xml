@@ -5,6 +5,25 @@
     <!-- PackageRef struct: (origin, id, name, description, installed, icon)
          origin -> "official" | "flathub" | "aur" -->
 
+    <method name="PackageManagerName">
+      <arg name="name" type="s" direction="out"/>
+    </method>
+
+    <method name="CommunityLayerName">
+      <arg name="name" type="s" direction="out"/>
+    </method>
+
+    <method name="GetPackageDetails">
+      <arg name="origin" type="s" direction="in"/>
+      <arg name="id" type="s" direction="in"/>
+      <arg name="details" type="(ssssbssssasass)" direction="out"/>
+    </method>
+
+    <method name="GetAurPkgbuild">
+      <arg name="id" type="s" direction="in"/>
+      <arg name="pkgbuild" type="s" direction="out"/>
+    </method>
+
     <method name="Search">
       <!-- polkit: none (read-only) -->
       <arg name="query" type="s" direction="in"/>

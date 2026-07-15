@@ -4,6 +4,10 @@
   <interface name="org.lyraos.Vega1.Snapshots">
     <!-- SnapshotInfo struct: (id, timestampUnix, trigger, description) -->
 
+    <method name="Available">
+      <arg name="available" type="b" direction="out"/>
+    </method>
+
     <method name="ListSnapshots">
       <!-- polkit: none (read-only) -->
       <arg name="snapshots" type="a(uxss)" direction="out"/>
@@ -23,6 +27,11 @@
 
     <method name="Rollback">
       <!-- polkit: org.lyraos.vega.snapshots.rollback -->
+      <arg name="snapshotId" type="u" direction="in"/>
+    </method>
+
+    <method name="DeleteSnapshot">
+      <!-- polkit: org.lyraos.vega.snapshots.delete -->
       <arg name="snapshotId" type="u" direction="in"/>
     </method>
 

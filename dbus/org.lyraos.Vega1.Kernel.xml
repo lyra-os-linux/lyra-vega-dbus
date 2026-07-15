@@ -7,6 +7,11 @@
       <arg name="kernels" type="as" direction="out"/>
     </method>
 
+    <method name="AvailablePackages">
+      <!-- polkit: none (read-only) -->
+      <arg name="kernels" type="as" direction="out"/>
+    </method>
+
     <method name="Install">
       <!-- polkit: org.lyraos.vega.kernel.switch -->
       <arg name="kernel" type="s" direction="in"/>

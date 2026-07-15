@@ -10,5 +10,16 @@
     <method name="Ping">
       <arg name="alive" type="b" direction="out"/>
     </method>
+    <method name="Distro">
+      <arg name="distro" type="s" direction="out"/>
+    </method>
+    <method name="Logo">
+      <arg name="path" type="s" direction="out"/>
+    </method>
+    <method name="DiskUsage">
+      <arg name="used" type="s" direction="out"/>
+      <arg name="total" type="s" direction="out"/>
+      <arg name="percent" type="u" direction="out"/>
+    </method>
   </interface>
 </node>
