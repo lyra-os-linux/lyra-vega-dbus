@@ -61,7 +61,7 @@
 
     <method name="ListRepos">
       <!-- polkit: none (read-only) -->
-      <arg name="repos" type="as" direction="out"/>
+      <arg name="repos" type="a(sb)" direction="out"/>
     </method>
 
     <method name="SetRepoEnabled">
