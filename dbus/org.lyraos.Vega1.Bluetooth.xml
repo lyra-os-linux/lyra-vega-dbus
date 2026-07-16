@@ -11,12 +11,14 @@
 
     <method name="Status">
       <!-- polkit: none (read-only) -->
-      <arg name="status" type="(bbbbbsssbs)" direction="out"/>
+      <arg name="status" type="(bbbbbssbbs)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="BluetoothStatus"/>
     </method>
 
     <method name="ListDevices">
       <!-- polkit: none (read-only) -->
       <arg name="devices" type="a(ssssbbbbi)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;BluetoothDevice&gt;"/>
     </method>
 
     <method name="SetPowered">

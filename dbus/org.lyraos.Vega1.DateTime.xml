@@ -7,6 +7,7 @@
     <method name="Status">
       <!-- polkit: none (read-only) -->
       <arg name="status" type="(sbss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="DateTimeStatus"/>
     </method>
 
     <method name="ListTimezones">

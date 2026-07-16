@@ -11,6 +11,7 @@
     <method name="ListSnapshots">
       <!-- polkit: none (read-only) -->
       <arg name="snapshots" type="a(uxss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;SnapshotInfo&gt;"/>
     </method>
 
     <method name="CreateSnapshot">

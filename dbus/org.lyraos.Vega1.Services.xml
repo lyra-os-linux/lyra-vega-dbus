@@ -7,11 +7,13 @@
     <method name="ListServices">
       <!-- polkit: none (read-only) -->
       <arg name="services" type="a(sssbbb)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;ServiceInfo&gt;"/>
     </method>
 
     <method name="ListAllServices">
       <!-- polkit: none (read-only) -->
       <arg name="services" type="a(sssbbb)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;ServiceInfo&gt;"/>
     </method>
 
     <method name="SetServiceEnabled">

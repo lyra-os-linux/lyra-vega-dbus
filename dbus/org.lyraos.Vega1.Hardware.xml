@@ -7,6 +7,7 @@
     <method name="Inventory">
       <!-- polkit: none (read-only) -->
       <arg name="inventory" type="(sss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="HardwareInventory"/>
     </method>
 
     <method name="SwitchNvidiaDriver">

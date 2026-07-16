@@ -27,6 +27,7 @@
     <method name="BootStatus">
       <!-- polkit: none (read-only) -->
       <arg name="status" type="(ssus)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="KernelBootStatus"/>
     </method>
 
     <method name="ListBootEntries">

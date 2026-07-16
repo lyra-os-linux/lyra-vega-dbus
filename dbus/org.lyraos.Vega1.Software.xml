@@ -16,7 +16,8 @@
     <method name="GetPackageDetails">
       <arg name="origin" type="s" direction="in"/>
       <arg name="id" type="s" direction="in"/>
-      <arg name="details" type="(ssssbssssasass)" direction="out"/>
+      <arg name="details" type="(ssssbssssasasss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="PackageDetails"/>
     </method>
 
     <method name="GetAurPkgbuild">
@@ -28,6 +29,7 @@
       <!-- polkit: none (read-only) -->
       <arg name="query" type="s" direction="in"/>
       <arg name="results" type="a(ssssbs)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;PackageRef&gt;"/>
     </method>
 
     <method name="Install">
@@ -47,11 +49,13 @@
     <method name="ListUpdates">
       <!-- polkit: none (read-only) -->
       <arg name="results" type="a(ssssbs)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;PackageRef&gt;"/>
     </method>
 
     <method name="ListInstalled">
       <!-- polkit: none (read-only) -->
       <arg name="results" type="a(ssssbs)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;PackageRef&gt;"/>
     </method>
 
     <method name="UpdateAll">
@@ -62,6 +66,7 @@
     <method name="ListRepos">
       <!-- polkit: none (read-only) -->
       <arg name="repos" type="a(sb)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;RepoInfo&gt;"/>
     </method>
 
     <method name="SetRepoEnabled">

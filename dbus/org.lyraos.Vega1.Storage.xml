@@ -10,6 +10,7 @@
     <method name="ListVolumes">
       <!-- polkit: none (read-only) -->
       <arg name="volumes" type="a(sssssssussbbb)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;StorageVolume&gt;"/>
     </method>
 
     <method name="Mount">

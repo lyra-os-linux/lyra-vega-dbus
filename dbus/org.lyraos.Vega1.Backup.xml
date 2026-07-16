@@ -8,12 +8,14 @@
     <method name="CreateConfig">
       <!-- polkit: org.lyraos.vega.backup.configure -->
       <arg name="config" type="(sassss)" direction="in"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.In0" value="BackupConfig"/>
       <arg name="configId" type="s" direction="out"/>
     </method>
 
     <method name="ListConfigs">
       <!-- polkit: none (read-only) -->
       <arg name="configs" type="a(sassss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;BackupConfig&gt;"/>
     </method>
 
     <method name="RunBackupNow">
@@ -26,6 +28,7 @@
       <!-- polkit: none (read-only) -->
       <arg name="configId" type="s" direction="in"/>
       <arg name="snapshots" type="a(sxtt)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;BackupSnapshot&gt;"/>
     </method>
 
     <method name="ListSnapshotPaths">

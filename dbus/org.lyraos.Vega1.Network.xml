@@ -12,11 +12,13 @@
     <method name="ListInterfaces">
       <!-- polkit: none (read-only) -->
       <arg name="interfaces" type="a(ssssssssssusb)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;NetworkInterface&gt;"/>
     </method>
 
     <method name="ListWifi">
       <!-- polkit: none (read-only) -->
       <arg name="networks" type="a(ssubs)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;WifiNetwork&gt;"/>
     </method>
 
     <method name="ConnectWifi">
@@ -46,6 +48,7 @@
     <method name="GetProxy">
       <!-- polkit: none (read-only) -->
       <arg name="proxy" type="(ssss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="ProxyConfig"/>
     </method>
 
     <method name="SetProxy">
