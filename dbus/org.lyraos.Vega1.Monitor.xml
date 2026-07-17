@@ -4,18 +4,18 @@
   <interface name="org.lyraos.Vega1.Monitor">
     <!--
       SystemMetrics: (cpuPercent, memUsed, memTotal, swapUsed, swapTotal,
-      diskReadBytes, diskWriteBytes, netRxBytes, netTxBytes)
-      ProcessInfo: (pid, name, user, cpuPercent, memory, state)
+      diskReadBytes, diskWriteBytes, netRxBytes, netTxBytes, cpuPerCore)
+      ProcessInfo: (pid, ppid, name, user, cpuPercent, memory, state)
     -->
 
     <method name="Metrics">
       <!-- polkit: none (read-only) -->
-      <arg name="metrics" type="(dtttttttt)" direction="out"/>
+      <arg name="metrics" type="(dttttttttad)" direction="out"/>
     </method>
 
     <method name="ListProcesses">
       <!-- polkit: none (read-only) -->
-      <arg name="processes" type="a(ussdts)" direction="out"/>
+      <arg name="processes" type="a(uussdts)" direction="out"/>
     </method>
 
     <method name="KillProcess">
