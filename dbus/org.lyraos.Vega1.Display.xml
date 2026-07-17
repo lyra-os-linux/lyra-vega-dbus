@@ -1,0 +1,27 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Display">
+    <!-- DisplayMode struct: (width, height, refreshHz, current, preferred) -->
+    <!-- DisplayOutput struct: (name, enabled, primary, scale, rotation, modes) -->
+
+    <method name="ListOutputs">
+      <!-- polkit: none (read-only) -->
+      <arg name="outputs" type="a(sbbdsa(uudbb))" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="DisplayOutputList"/>
+    </method>
+
+    <method name="Apply">
+      <!-- polkit: none — configuração de tela é escopo da sessão gráfica do
+           usuário ativo (roda via runuser dentro dessa sessão), não um
+           privilégio de sistema; ver
+           vegad/internal/dbusserver/displaysession.go -->
+      <arg name="output" type="s" direction="in"/>
+      <arg name="width" type="u" direction="in"/>
+      <arg name="height" type="u" direction="in"/>
+      <arg name="refreshHz" type="d" direction="in"/>
+      <arg name="scale" type="d" direction="in"/>
+      <arg name="rotation" type="s" direction="in"/>
+    </method>
+  </interface>
+</node>
