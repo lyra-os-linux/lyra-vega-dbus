@@ -110,11 +110,26 @@ pub struct SoftwareTransactionFinished {
     pub message: String,
 }
 
+/// A repository's signing key discovered by AddRepo/TrustRepoKey that isn't
+/// trusted yet — the UI shows `user_id`/`fingerprint` and lets the user
+/// approve importing it via `SoftwareClient::trust_repo_key`. This is
+/// trust-on-first-use, the same level of verification a human would give by
+/// approving the equivalent pacman/zypper/dnf terminal prompt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepositoryKeyInfo {
+    pub transaction_id: u32,
+    pub repo: String,
+    pub key_id: String,
+    pub fingerprint: String,
+    pub user_id: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SoftwareEvent {
     Progress(SoftwareTransactionProgress),
     Finished(SoftwareTransactionFinished),
     UpdatesAvailable(u32),
+    KeyPending(RepositoryKeyInfo),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,6 +170,8 @@ pub trait SoftwareClient: Send + Sync {
     async fn remove(&self, origin: &str, id: &str) -> Result<u32, SoftwareClientError>;
     async fn update_all(&self) -> Result<u32, SoftwareClientError>;
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> Result<(), SoftwareClientError>;
+    async fn add_repo(&self, name: &str, url: &str) -> Result<u32, SoftwareClientError>;
+    async fn trust_repo_key(&self, repo: &str, key_id: &str) -> Result<u32, SoftwareClientError>;
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError>;
     async fn optimize_mirrors(&self) -> Result<u32, SoftwareClientError>;
 }
@@ -177,6 +194,8 @@ trait Software {
     async fn remove(&self, origin: &str, id: &str) -> zbus::Result<u32>;
     async fn update_all(&self) -> zbus::Result<u32>;
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> zbus::Result<()>;
+    async fn add_repo(&self, name: &str, url: &str) -> zbus::Result<u32>;
+    async fn trust_repo_key(&self, repo: &str, key_id: &str) -> zbus::Result<u32>;
     async fn clear_cache(&self) -> zbus::Result<u32>;
     async fn optimize_mirrors(&self) -> zbus::Result<u32>;
 
@@ -198,6 +217,16 @@ trait Software {
 
     #[zbus(signal)]
     async fn updates_available(&self, count: u32) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    async fn repo_key_pending(
+        &self,
+        transaction_id: u32,
+        repo: &str,
+        key_id: &str,
+        fingerprint: &str,
+        user_id: &str,
+    ) -> zbus::Result<()>;
 }
 
 pub struct ZbusSoftwareClient {
@@ -237,6 +266,10 @@ impl ZbusSoftwareClient {
                 .receive_updates_available()
                 .await
                 .map_err(SoftwareClientError::unavailable)?,
+            key_pending: proxy
+                .receive_repo_key_pending()
+                .await
+                .map_err(SoftwareClientError::unavailable)?,
         })
     }
 }
@@ -245,6 +278,7 @@ pub struct SoftwareEventStream {
     progress: TransactionProgressStream,
     finished: TransactionFinishedStream,
     updates: UpdatesAvailableStream,
+    key_pending: RepoKeyPendingStream,
 }
 
 impl SoftwareEventStream {
@@ -272,6 +306,17 @@ impl SoftwareEventStream {
                 let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
                 let args = signal.args().map_err(SoftwareClientError::unavailable)?;
                 Ok(SoftwareEvent::UpdatesAvailable(args.count))
+            },
+            signal = self.key_pending.next().fuse() => {
+                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                Ok(SoftwareEvent::KeyPending(RepositoryKeyInfo {
+                    transaction_id: args.transaction_id,
+                    repo: args.repo.to_owned(),
+                    key_id: args.key_id.to_owned(),
+                    fingerprint: args.fingerprint.to_owned(),
+                    user_id: args.user_id.to_owned(),
+                }))
             },
         }
     }
@@ -347,6 +392,14 @@ impl SoftwareClient for ZbusSoftwareClient {
         proxy_call!(self, set_repo_enabled(repo, enabled))
     }
 
+    async fn add_repo(&self, name: &str, url: &str) -> Result<u32, SoftwareClientError> {
+        proxy_call!(self, add_repo(name, url))
+    }
+
+    async fn trust_repo_key(&self, repo: &str, key_id: &str) -> Result<u32, SoftwareClientError> {
+        proxy_call!(self, trust_repo_key(repo, key_id))
+    }
+
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError> {
         proxy_call!(self, clear_cache())
     }
@@ -409,6 +462,14 @@ mod tests {
     fn software_xml_methods_match_the_typed_proxy() {
         let package_rows = "a(ssssbs)";
         let expected = BTreeMap::from([
+            (
+                "AddRepo".into(),
+                args(&[("in", "s"), ("in", "s"), ("out", "u")]),
+            ),
+            (
+                "TrustRepoKey".into(),
+                args(&[("in", "s"), ("in", "s"), ("out", "u")]),
+            ),
             ("ClearCache".into(), args(&[("out", "u")])),
             ("CommunityLayerName".into(), args(&[("out", "s")])),
             ("GetAurPkgbuild".into(), args(&[("in", "s"), ("out", "s")])),
@@ -448,6 +509,16 @@ mod tests {
                 args(&[("out", "u"), ("out", "u"), ("out", "s")]),
             ),
             ("UpdatesAvailable".into(), args(&[("out", "u")])),
+            (
+                "RepoKeyPending".into(),
+                args(&[
+                    ("out", "u"),
+                    ("out", "s"),
+                    ("out", "s"),
+                    ("out", "s"),
+                    ("out", "s"),
+                ]),
+            ),
         ]);
         assert_eq!(members("signal"), expected);
     }

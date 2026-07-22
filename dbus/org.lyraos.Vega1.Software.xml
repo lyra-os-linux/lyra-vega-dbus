@@ -75,6 +75,20 @@
       <arg name="enabled" type="b" direction="in"/>
     </method>
 
+    <method name="AddRepo">
+      <!-- polkit: org.lyraos.vega.software.manage-repos -->
+      <arg name="name" type="s" direction="in"/>
+      <arg name="url" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
+    <method name="TrustRepoKey">
+      <!-- polkit: org.lyraos.vega.software.manage-repos -->
+      <arg name="repo" type="s" direction="in"/>
+      <arg name="keyId" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
     <method name="ClearCache">
       <!-- polkit: org.lyraos.vega.software.clear-cache -->
       <arg name="transactionId" type="u" direction="out"/>
@@ -95,6 +109,19 @@
       <arg name="transactionId" type="u"/>
       <arg name="success" type="b"/>
       <arg name="message" type="s"/>
+    </signal>
+
+    <signal name="RepoKeyPending">
+      <!-- Emitido durante uma transação AddRepo/TrustRepoKey quando o
+           repositório está assinado por uma chave ainda não confiada — a UI
+           deve mostrar keyId/fingerprint/userId pro usuário aprovar e então
+           chamar TrustRepoKey. A transação em si termina com
+           success=false logo em seguida (ver TransactionFinished). -->
+      <arg name="transactionId" type="u"/>
+      <arg name="repo" type="s"/>
+      <arg name="keyId" type="s"/>
+      <arg name="fingerprint" type="s"/>
+      <arg name="userId" type="s"/>
     </signal>
 
     <signal name="UpdatesAvailable">
