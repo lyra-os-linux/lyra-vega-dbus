@@ -1,16 +1,22 @@
 use async_trait::async_trait;
 
+type UserInfoRow = (String, String, Vec<String>, bool);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserInfo {
     pub username: String,
+    pub full_name: String,
+    pub groups: Vec<String>,
     pub is_admin: bool,
 }
 
-impl From<(String, bool)> for UserInfo {
-    fn from(row: (String, bool)) -> Self {
+impl From<UserInfoRow> for UserInfo {
+    fn from(row: UserInfoRow) -> Self {
         Self {
             username: row.0,
-            is_admin: row.1,
+            full_name: row.1,
+            groups: row.2,
+            is_admin: row.3,
         }
     }
 }
@@ -40,7 +46,25 @@ impl UsersClientError {
 #[async_trait]
 pub trait UsersClient: Send + Sync {
     async fn list(&self) -> Result<Vec<UserInfo>, UsersClientError>;
-    async fn create(&self, username: &str, is_admin: bool) -> Result<(), UsersClientError>;
+    async fn list_groups(&self) -> Result<Vec<String>, UsersClientError>;
+    async fn create(
+        &self,
+        username: &str,
+        full_name: &str,
+        password: &str,
+        groups: &[String],
+        photo: &[u8],
+        is_admin: bool,
+    ) -> Result<(), UsersClientError>;
+    async fn update(
+        &self,
+        username: &str,
+        full_name: &str,
+        password: &str,
+        groups: &[String],
+        photo: &[u8],
+        is_admin: bool,
+    ) -> Result<(), UsersClientError>;
     async fn remove(&self, username: &str) -> Result<(), UsersClientError>;
     async fn set_admin(&self, username: &str, is_admin: bool) -> Result<(), UsersClientError>;
 }
@@ -51,8 +75,26 @@ pub trait UsersClient: Send + Sync {
     default_path = "/org/lyraos/Vega1"
 )]
 trait Users {
-    async fn list_users(&self) -> zbus::Result<Vec<(String, bool)>>;
-    async fn create_user(&self, username: &str, is_admin: bool) -> zbus::Result<()>;
+    async fn list_users(&self) -> zbus::Result<Vec<UserInfoRow>>;
+    async fn list_groups(&self) -> zbus::Result<Vec<String>>;
+    async fn create_user(
+        &self,
+        username: &str,
+        full_name: &str,
+        password: &str,
+        groups: &[String],
+        photo: &[u8],
+        is_admin: bool,
+    ) -> zbus::Result<()>;
+    async fn update_user(
+        &self,
+        username: &str,
+        full_name: &str,
+        password: &str,
+        groups: &[String],
+        photo: &[u8],
+        is_admin: bool,
+    ) -> zbus::Result<()>;
     async fn remove_user(&self, username: &str) -> zbus::Result<()>;
     async fn set_admin(&self, username: &str, is_admin: bool) -> zbus::Result<()>;
 }
@@ -84,10 +126,26 @@ impl UsersClient for ZbusUsersClient {
             .map_err(UsersClientError::from_error)
     }
 
-    async fn create(&self, username: &str, is_admin: bool) -> Result<(), UsersClientError> {
+    async fn list_groups(&self) -> Result<Vec<String>, UsersClientError> {
         self.proxy()
             .await?
-            .create_user(username, is_admin)
+            .list_groups()
+            .await
+            .map_err(UsersClientError::from_error)
+    }
+
+    async fn create(
+        &self,
+        username: &str,
+        full_name: &str,
+        password: &str,
+        groups: &[String],
+        photo: &[u8],
+        is_admin: bool,
+    ) -> Result<(), UsersClientError> {
+        self.proxy()
+            .await?
+            .create_user(username, full_name, password, groups, photo, is_admin)
             .await
             .map_err(UsersClientError::from_error)
     }
@@ -96,6 +154,22 @@ impl UsersClient for ZbusUsersClient {
         self.proxy()
             .await?
             .remove_user(username)
+            .await
+            .map_err(UsersClientError::from_error)
+    }
+
+    async fn update(
+        &self,
+        username: &str,
+        full_name: &str,
+        password: &str,
+        groups: &[String],
+        photo: &[u8],
+        is_admin: bool,
+    ) -> Result<(), UsersClientError> {
+        self.proxy()
+            .await?
+            .update_user(username, full_name, password, groups, photo, is_admin)
             .await
             .map_err(UsersClientError::from_error)
     }
@@ -124,7 +198,14 @@ mod tests {
         methods.sort_unstable();
         assert_eq!(
             methods,
-            ["CreateUser", "ListUsers", "RemoveUser", "SetAdmin"]
+            [
+                "CreateUser",
+                "ListGroups",
+                "ListUsers",
+                "RemoveUser",
+                "SetAdmin",
+                "UpdateUser"
+            ]
         );
     }
 }
