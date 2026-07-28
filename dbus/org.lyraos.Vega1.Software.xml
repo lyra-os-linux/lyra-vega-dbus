@@ -2,8 +2,10 @@
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node name="/org/lyraos/Vega1">
   <interface name="org.lyraos.Vega1.Software">
-    <!-- PackageRef struct: (origin, id, name, description, installed, icon)
-         origin -> "official" | "flathub" | "aur" -->
+    <!-- PackageRef struct: (origin, id, name, description, installed, icon, repository)
+         origin -> "official" | "flathub" | "aur"
+         repository -> source repo's display name, populated for ListUpdates
+         (grouping key for the Updates tab), empty where it doesn't apply -->
 
     <method name="PackageManagerName">
       <arg name="name" type="s" direction="out"/>
@@ -28,7 +30,7 @@
     <method name="Search">
       <!-- polkit: none (read-only) -->
       <arg name="query" type="s" direction="in"/>
-      <arg name="results" type="a(ssssbs)" direction="out"/>
+      <arg name="results" type="a(ssssbss)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;PackageRef&gt;"/>
     </method>
 
@@ -48,13 +50,13 @@
 
     <method name="ListUpdates">
       <!-- polkit: none (read-only) -->
-      <arg name="results" type="a(ssssbs)" direction="out"/>
+      <arg name="results" type="a(ssssbss)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;PackageRef&gt;"/>
     </method>
 
     <method name="ListInstalled">
       <!-- polkit: none (read-only) -->
-      <arg name="results" type="a(ssssbs)" direction="out"/>
+      <arg name="results" type="a(ssssbss)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;PackageRef&gt;"/>
     </method>
 
@@ -122,6 +124,19 @@
       <arg name="keyId" type="s"/>
       <arg name="fingerprint" type="s"/>
       <arg name="userId" type="s"/>
+    </signal>
+
+    <signal name="PackageProgress">
+      <!-- Emitido durante uma transação Install/Remove/UpdateAll conduzida
+           via zypper (modo XML), a cada avanço de download ou instalação de
+           um pacote. phase -> "download" | "install". Origens sem essa
+           granularidade (Flathub, AUR) nunca emitem este sinal — a UI deve
+           tratar a ausência como "sem detalhe fino disponível" e usar só
+           o TransactionProgress geral. -->
+      <arg name="transactionId" type="u"/>
+      <arg name="package" type="s"/>
+      <arg name="phase" type="s"/>
+      <arg name="percent" type="u"/>
     </signal>
 
     <signal name="UpdatesAvailable">

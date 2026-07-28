@@ -9,6 +9,11 @@ pub struct PackageRef {
     pub description: String,
     pub installed: bool,
     pub icon: String,
+    /// Source repository's display name, populated for pending updates so
+    /// the UI can group the Updates tab by it ("Flathub" for that origin,
+    /// the zypper repo's Name for "official"). Empty where grouping
+    /// doesn't apply (Search, ListInstalled).
+    pub repository: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,7 +33,7 @@ impl From<RepositoryRefRow> for RepositoryRef {
     }
 }
 
-type PackageRefRow = (String, String, String, String, bool, String);
+type PackageRefRow = (String, String, String, String, bool, String, String);
 
 impl From<PackageRefRow> for PackageRef {
     fn from(row: PackageRefRow) -> Self {
@@ -39,6 +44,7 @@ impl From<PackageRefRow> for PackageRef {
             description: row.3,
             installed: row.4,
             icon: row.5,
+            repository: row.6,
         }
     }
 }
@@ -110,6 +116,19 @@ pub struct SoftwareTransactionFinished {
     pub message: String,
 }
 
+/// Fine-grained, per-package progress alongside a transaction's overall
+/// SoftwareTransactionProgress — only emitted for Install/Remove/UpdateAll
+/// on the "official" origin, driven by zypper --xmlout. phase is the wire
+/// value verbatim, "download" | "install" (kept as a plain String rather
+/// than an enum, matching how PackageRef.origin is handled in this file).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SoftwarePackageProgress {
+    pub transaction_id: u32,
+    pub package: String,
+    pub phase: String,
+    pub percent: u32,
+}
+
 /// A repository's signing key discovered by AddRepo/TrustRepoKey that isn't
 /// trusted yet — the UI shows `user_id`/`fingerprint` and lets the user
 /// approve importing it via `SoftwareClient::trust_repo_key`. This is
@@ -130,6 +149,7 @@ pub enum SoftwareEvent {
     Finished(SoftwareTransactionFinished),
     UpdatesAvailable(u32),
     KeyPending(RepositoryKeyInfo),
+    PackageProgress(SoftwarePackageProgress),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -216,6 +236,15 @@ trait Software {
     ) -> zbus::Result<()>;
 
     #[zbus(signal)]
+    async fn package_progress(
+        &self,
+        transaction_id: u32,
+        package: &str,
+        phase: &str,
+        percent: u32,
+    ) -> zbus::Result<()>;
+
+    #[zbus(signal)]
     async fn updates_available(&self, count: u32) -> zbus::Result<()>;
 
     #[zbus(signal)]
@@ -262,6 +291,10 @@ impl ZbusSoftwareClient {
                 .receive_transaction_finished()
                 .await
                 .map_err(SoftwareClientError::unavailable)?,
+            package_progress: proxy
+                .receive_package_progress()
+                .await
+                .map_err(SoftwareClientError::unavailable)?,
             updates: proxy
                 .receive_updates_available()
                 .await
@@ -277,6 +310,7 @@ impl ZbusSoftwareClient {
 pub struct SoftwareEventStream {
     progress: TransactionProgressStream,
     finished: TransactionFinishedStream,
+    package_progress: PackageProgressStream,
     updates: UpdatesAvailableStream,
     key_pending: RepoKeyPendingStream,
 }
@@ -300,6 +334,16 @@ impl SoftwareEventStream {
                     transaction_id: args.transaction_id,
                     success: args.success,
                     message: args.message.to_owned(),
+                }))
+            },
+            signal = self.package_progress.next().fuse() => {
+                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                Ok(SoftwareEvent::PackageProgress(SoftwarePackageProgress {
+                    transaction_id: args.transaction_id,
+                    package: args.package.to_owned(),
+                    phase: args.phase.to_owned(),
+                    percent: args.percent,
                 }))
             },
             signal = self.updates.next().fuse() => {
@@ -460,7 +504,7 @@ mod tests {
 
     #[test]
     fn software_xml_methods_match_the_typed_proxy() {
-        let package_rows = "a(ssssbs)";
+        let package_rows = "a(ssssbss)";
         let expected = BTreeMap::from([
             (
                 "AddRepo".into(),
@@ -519,6 +563,10 @@ mod tests {
                     ("out", "s"),
                 ]),
             ),
+            (
+                "PackageProgress".into(),
+                args(&[("out", "u"), ("out", "s"), ("out", "s"), ("out", "u")]),
+            ),
         ]);
         assert_eq!(members("signal"), expected);
     }
@@ -532,6 +580,7 @@ mod tests {
             "Description".into(),
             true,
             "org.example.App".into(),
+            "Flathub".into(),
         ));
         assert_eq!(package.origin, "flathub");
         assert_eq!(package.id, "org.example.App");
