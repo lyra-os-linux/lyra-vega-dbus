@@ -193,7 +193,6 @@ pub trait SoftwareClient: Send + Sync {
     async fn add_repo(&self, name: &str, url: &str) -> Result<u32, SoftwareClientError>;
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> Result<u32, SoftwareClientError>;
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError>;
-    async fn optimize_mirrors(&self) -> Result<u32, SoftwareClientError>;
 }
 
 #[zbus::proxy(
@@ -217,7 +216,6 @@ trait Software {
     async fn add_repo(&self, name: &str, url: &str) -> zbus::Result<u32>;
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> zbus::Result<u32>;
     async fn clear_cache(&self) -> zbus::Result<u32>;
-    async fn optimize_mirrors(&self) -> zbus::Result<u32>;
 
     #[zbus(signal)]
     async fn transaction_progress(
@@ -447,10 +445,6 @@ impl SoftwareClient for ZbusSoftwareClient {
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError> {
         proxy_call!(self, clear_cache())
     }
-
-    async fn optimize_mirrors(&self) -> Result<u32, SoftwareClientError> {
-        proxy_call!(self, optimize_mirrors())
-    }
 }
 
 #[cfg(test)]
@@ -528,7 +522,6 @@ mod tests {
             ("ListInstalled".into(), args(&[("out", package_rows)])),
             ("ListRepos".into(), args(&[("out", "a(sb)")])),
             ("ListUpdates".into(), args(&[("out", package_rows)])),
-            ("OptimizeMirrors".into(), args(&[("out", "u")])),
             ("PackageManagerName".into(), args(&[("out", "s")])),
             (
                 "Remove".into(),
