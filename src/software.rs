@@ -189,6 +189,7 @@ pub trait SoftwareClient: Send + Sync {
     async fn install(&self, origin: &str, id: &str) -> Result<u32, SoftwareClientError>;
     async fn remove(&self, origin: &str, id: &str) -> Result<u32, SoftwareClientError>;
     async fn update_all(&self) -> Result<u32, SoftwareClientError>;
+    async fn update_package(&self, origin: &str, id: &str) -> Result<u32, SoftwareClientError>;
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> Result<(), SoftwareClientError>;
     async fn add_repo(&self, name: &str, url: &str) -> Result<u32, SoftwareClientError>;
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> Result<u32, SoftwareClientError>;
@@ -212,6 +213,7 @@ trait Software {
     async fn install(&self, origin: &str, id: &str) -> zbus::Result<u32>;
     async fn remove(&self, origin: &str, id: &str) -> zbus::Result<u32>;
     async fn update_all(&self) -> zbus::Result<u32>;
+    async fn update_package(&self, origin: &str, id: &str) -> zbus::Result<u32>;
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> zbus::Result<()>;
     async fn add_repo(&self, name: &str, url: &str) -> zbus::Result<u32>;
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> zbus::Result<u32>;
@@ -430,6 +432,10 @@ impl SoftwareClient for ZbusSoftwareClient {
         proxy_call!(self, update_all())
     }
 
+    async fn update_package(&self, origin: &str, id: &str) -> Result<u32, SoftwareClientError> {
+        proxy_call!(self, update_package(origin, id))
+    }
+
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> Result<(), SoftwareClientError> {
         proxy_call!(self, set_repo_enabled(repo, enabled))
     }
@@ -530,6 +536,10 @@ mod tests {
             ("Search".into(), args(&[("in", "s"), ("out", package_rows)])),
             ("SetRepoEnabled".into(), args(&[("in", "s"), ("in", "b")])),
             ("UpdateAll".into(), args(&[("out", "u")])),
+            (
+                "UpdatePackage".into(),
+                args(&[("in", "s"), ("in", "s"), ("out", "u")]),
+            ),
         ]);
         assert_eq!(members("method"), expected);
     }

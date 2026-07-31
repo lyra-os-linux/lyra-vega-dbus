@@ -65,6 +65,16 @@
       <arg name="transactionId" type="u" direction="out"/>
     </method>
 
+    <method name="UpdatePackage">
+      <!-- polkit: org.lyraos.vega.software.update -->
+      <!-- Updates a single pending update, pulling in whatever dependency
+           bump it needs (the package manager's own resolver decides that),
+           instead of running the full UpdateAll. -->
+      <arg name="origin" type="s" direction="in"/>
+      <arg name="id" type="s" direction="in"/>
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
     <method name="ListRepos">
       <!-- polkit: none (read-only) -->
       <arg name="repos" type="a(sb)" direction="out"/>
