@@ -33,6 +33,21 @@ impl From<(String, String, bool)> for FirewallService {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FirewallPort {
+    pub port: String,
+    pub protocol: String,
+}
+
+impl From<(String, String)> for FirewallPort {
+    fn from(row: (String, String)) -> Self {
+        Self {
+            port: row.0,
+            protocol: row.1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FirewallClientError(String);
 
 impl std::fmt::Display for FirewallClientError {
@@ -59,6 +74,9 @@ pub trait FirewallClient: Send + Sync {
     async fn status(&self) -> Result<FirewallStatus, FirewallClientError>;
     async fn services(&self) -> Result<Vec<FirewallService>, FirewallClientError>;
     async fn set_service(&self, name: &str, enabled: bool) -> Result<(), FirewallClientError>;
+    async fn ports(&self) -> Result<Vec<FirewallPort>, FirewallClientError>;
+    async fn add_port(&self, port: &str, protocol: &str) -> Result<(), FirewallClientError>;
+    async fn remove_port(&self, port: &str, protocol: &str) -> Result<(), FirewallClientError>;
 }
 
 #[zbus::proxy(
@@ -70,6 +88,9 @@ trait Firewall {
     async fn status(&self) -> zbus::Result<(bool, String)>;
     async fn list_services(&self) -> zbus::Result<Vec<(String, String, bool)>>;
     async fn set_service_enabled(&self, name: &str, enabled: bool) -> zbus::Result<()>;
+    async fn list_ports(&self) -> zbus::Result<Vec<(String, String)>>;
+    async fn add_port(&self, port: &str, protocol: &str) -> zbus::Result<()>;
+    async fn remove_port(&self, port: &str, protocol: &str) -> zbus::Result<()>;
 }
 
 pub struct ZbusFirewallClient {
@@ -115,6 +136,31 @@ impl FirewallClient for ZbusFirewallClient {
             .await
             .map_err(FirewallClientError::from_error)
     }
+
+    async fn ports(&self) -> Result<Vec<FirewallPort>, FirewallClientError> {
+        self.proxy()
+            .await?
+            .list_ports()
+            .await
+            .map(|rows| rows.into_iter().map(Into::into).collect())
+            .map_err(FirewallClientError::from_error)
+    }
+
+    async fn add_port(&self, port: &str, protocol: &str) -> Result<(), FirewallClientError> {
+        self.proxy()
+            .await?
+            .add_port(port, protocol)
+            .await
+            .map_err(FirewallClientError::from_error)
+    }
+
+    async fn remove_port(&self, port: &str, protocol: &str) -> Result<(), FirewallClientError> {
+        self.proxy()
+            .await?
+            .remove_port(port, protocol)
+            .await
+            .map_err(FirewallClientError::from_error)
+    }
 }
 
 #[cfg(test)]
@@ -122,7 +168,14 @@ mod tests {
     #[test]
     fn firewall_xml_contract() {
         let xml = include_str!("../../dbus/org.lyraos.Vega1.Firewall.xml");
-        for method in ["Status", "ListServices", "SetServiceEnabled"] {
+        for method in [
+            "Status",
+            "ListServices",
+            "SetServiceEnabled",
+            "ListPorts",
+            "AddPort",
+            "RemovePort",
+        ] {
             assert!(xml.contains(&format!("<method name=\"{method}\">")));
         }
     }

@@ -27,7 +27,8 @@ pub use bluetooth::{
 pub use client::{DbusConnectionError, VegaDbus};
 pub use datetime::{DateTimeClient, DateTimeClientError, DateTimeStatus, ZbusDateTimeClient};
 pub use firewall::{
-    FirewallClient, FirewallClientError, FirewallService, FirewallStatus, ZbusFirewallClient,
+    FirewallClient, FirewallClientError, FirewallPort, FirewallService, FirewallStatus,
+    ZbusFirewallClient,
 };
 pub use hardware::{HardwareClient, HardwareClientError, HardwareInventory, ZbusHardwareClient};
 pub use kernel::{BootStatus, KernelClient, KernelClientError, ZbusKernelClient};
