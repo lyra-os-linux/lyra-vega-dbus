@@ -5,13 +5,13 @@
     <!--
       SystemMetrics: (cpuPercent, memUsed, memTotal, swapUsed, swapTotal,
       diskReadBytes, diskWriteBytes, netRxBytes, netTxBytes, cpuPerCore,
-      gpuPercent; -1 when unavailable)
+      gpuPercent, gpuPerDevice; -1 marks unavailable utilization)
       ProcessInfo: (pid, ppid, name, user, cpuPercent, memory, state)
     -->
 
     <method name="Metrics">
       <!-- polkit: none (read-only) -->
-      <arg name="metrics" type="(dttttttttadd)" direction="out"/>
+      <arg name="metrics" type="(dttttttttaddad)" direction="out"/>
     </method>
 
     <method name="ListProcesses">
