@@ -12,9 +12,11 @@ pub struct SystemMetrics {
     pub net_rx_bytes: u64,
     pub net_tx_bytes: u64,
     pub cpu_per_core: Vec<f64>,
+    /// Percentage from 0–100, or -1 when the driver exposes no utilization.
+    pub gpu_percent: f64,
 }
 
-type MetricsRow = (f64, u64, u64, u64, u64, u64, u64, u64, u64, Vec<f64>);
+type MetricsRow = (f64, u64, u64, u64, u64, u64, u64, u64, u64, Vec<f64>, f64);
 
 impl From<MetricsRow> for SystemMetrics {
     fn from(row: MetricsRow) -> Self {
@@ -29,6 +31,7 @@ impl From<MetricsRow> for SystemMetrics {
             net_rx_bytes: row.7,
             net_tx_bytes: row.8,
             cpu_per_core: row.9,
+            gpu_percent: row.10,
         }
     }
 }
@@ -170,6 +173,8 @@ impl MonitorClient for ZbusMonitorClient {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn monitor_xml_contains_every_typed_method() {
         let xml = include_str!("../../dbus/org.lyraos.Vega1.Monitor.xml");
@@ -182,5 +187,22 @@ mod tests {
             .collect::<Vec<_>>();
         methods.sort_unstable();
         assert_eq!(methods, ["KillProcess", "ListProcesses", "Metrics"]);
+
+        let metrics_type = document
+            .descendants()
+            .find(|node| node.has_tag_name("method") && node.attribute("name") == Some("Metrics"))
+            .and_then(|method| method.children().find(|node| node.has_tag_name("arg")))
+            .and_then(|arg| arg.attribute("type"));
+        assert_eq!(metrics_type, Some("(dttttttttadd)"));
+    }
+
+    #[test]
+    fn metrics_tuple_maps_gpu_without_shifting_existing_fields() {
+        let metrics = SystemMetrics::from((12.5, 1, 2, 3, 4, 5, 6, 7, 8, vec![25.0, 50.0], 37.5));
+        assert_eq!(metrics.cpu_percent, 12.5);
+        assert_eq!(metrics.mem_used, 1);
+        assert_eq!(metrics.net_tx_bytes, 8);
+        assert_eq!(metrics.cpu_per_core, [25.0, 50.0]);
+        assert_eq!(metrics.gpu_percent, 37.5);
     }
 }
