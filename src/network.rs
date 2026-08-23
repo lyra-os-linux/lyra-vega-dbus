@@ -248,7 +248,7 @@ impl NetworkClient for ZbusNetworkClient {
 mod tests {
     #[test]
     fn network_xml_contract() {
-        let x = include_str!("../../dbus/org.lyraos.Vega1.Network.xml");
+        let x = include_str!("../dbus/org.lyraos.Vega1.Network.xml");
         for m in [
             "ListInterfaces",
             "ListWifi",

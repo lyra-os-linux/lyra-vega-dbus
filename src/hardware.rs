@@ -120,7 +120,7 @@ mod tests {
 
     use super::HardwareClient;
 
-    const HARDWARE_XML: &str = include_str!("../../dbus/org.lyraos.Vega1.Hardware.xml");
+    const HARDWARE_XML: &str = include_str!("../dbus/org.lyraos.Vega1.Hardware.xml");
 
     #[test]
     fn hardware_xml_matches_the_typed_proxy() {

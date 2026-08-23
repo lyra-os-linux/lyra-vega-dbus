@@ -236,7 +236,7 @@ impl BluetoothClient for ZbusBluetoothClient {
 mod tests {
     #[test]
     fn bluetooth_xml_contract() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.Bluetooth.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.Bluetooth.xml");
         for method in [
             "Status",
             "ListDevices",

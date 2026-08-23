@@ -167,7 +167,7 @@ impl FirewallClient for ZbusFirewallClient {
 mod tests {
     #[test]
     fn firewall_xml_contract() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.Firewall.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.Firewall.xml");
         for method in [
             "Status",
             "ListServices",

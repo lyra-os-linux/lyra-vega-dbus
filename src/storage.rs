@@ -138,7 +138,7 @@ impl StorageClient for ZbusStorageClient {
 mod tests {
     #[test]
     fn storage_xml_contains_every_typed_method() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.Storage.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.Storage.xml");
         for method in ["ListVolumes", "Mount", "Unmount"] {
             assert!(xml.contains(&format!("<method name=\"{method}\">")));
         }

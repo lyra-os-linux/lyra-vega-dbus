@@ -121,7 +121,7 @@ mod tests {
 
     use super::*;
 
-    const SYSTEM_XML: &str = include_str!("../../dbus/org.lyraos.Vega1.System.xml");
+    const SYSTEM_XML: &str = include_str!("../dbus/org.lyraos.Vega1.System.xml");
 
     #[test]
     fn system_xml_matches_the_typed_proxy_contract() {

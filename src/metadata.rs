@@ -65,7 +65,7 @@ impl MetadataClient for ZbusMetadataClient {
 mod tests {
     #[test]
     fn metadata_xml_has_stable_contract() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.Metadata.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.Metadata.xml");
         assert!(xml.contains("org.lyraos.Vega1.Metadata"));
         assert!(xml.contains("method name=\"Profile\""));
         assert!(xml.contains("method name=\"Capabilities\""));

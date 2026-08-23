@@ -126,7 +126,7 @@ impl DateTimeClient for ZbusDateTimeClient {
 mod tests {
     #[test]
     fn datetime_xml_contains_every_typed_method() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.DateTime.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.DateTime.xml");
         for method in [
             "Status",
             "ListTimezones",

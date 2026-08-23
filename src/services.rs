@@ -119,7 +119,7 @@ impl ServicesClient for ZbusServicesClient {
 mod tests {
     #[test]
     fn services_xml_contains_every_typed_method() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.Services.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.Services.xml");
         let start = xml.find("<node").unwrap();
         let document = roxmltree::Document::parse(&xml[start..]).unwrap();
         let mut methods = document

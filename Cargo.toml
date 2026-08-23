@@ -1,11 +1,11 @@
 [package]
 name = "lyra-vega-dbus"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-authors.workspace = true
-rust-version.workspace = true
-homepage.workspace = true
+version = "5.1.22"
+edition = "2024"
+license = "GPL-3.0"
+authors = ["Rodrigo Brito"]
+rust-version = "1.92"
+homepage = "https://github.com/lyra-os-linux/lyra-vega-dbus"
 description = "Cliente D-Bus tipado do contrato org.lyraos.Vega1, compartilhado entre os frontends do Vega"
 
 [dependencies]

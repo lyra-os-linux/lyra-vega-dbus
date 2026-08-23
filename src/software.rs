@@ -634,7 +634,7 @@ mod tests {
 
     use super::SoftwareClient;
 
-    const SOFTWARE_XML: &str = include_str!("../../dbus/org.lyraos.Vega1.Software.xml");
+    const SOFTWARE_XML: &str = include_str!("../dbus/org.lyraos.Vega1.Software.xml");
     const INTERFACE: &str = "org.lyraos.Vega1.Software";
 
     fn members(tag: &str) -> BTreeMap<String, Vec<(String, String)>> {

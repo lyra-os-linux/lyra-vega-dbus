@@ -133,7 +133,7 @@ impl KernelClient for ZbusKernelClient {
 mod tests {
     #[test]
     fn kernel_xml_contains_every_typed_method() {
-        let xml = include_str!("../../dbus/org.lyraos.Vega1.Kernel.xml");
+        let xml = include_str!("../dbus/org.lyraos.Vega1.Kernel.xml");
         for method in [
             "ListInstalled",
             "AvailablePackages",

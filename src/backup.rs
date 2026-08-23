@@ -393,7 +393,7 @@ mod tests {
 
     use super::BackupClient;
 
-    const BACKUP_XML: &str = include_str!("../../dbus/org.lyraos.Vega1.Backup.xml");
+    const BACKUP_XML: &str = include_str!("../dbus/org.lyraos.Vega1.Backup.xml");
     const INTERFACE: &str = "org.lyraos.Vega1.Backup";
 
     fn members(tag: &str) -> BTreeMap<String, Vec<(String, String)>> {
