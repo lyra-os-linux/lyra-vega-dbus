@@ -20,7 +20,16 @@ lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag 
 ## Desenvolvimento
 
 ```sh
-cargo test
+cargo test --locked
+cargo fmt --all --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+
+# Com os checkouts irmãos presentes:
+./scripts/check-consumer-pin.sh ../vega vega
+./scripts/check-consumer-pin.sh ../vega-web vega-web
+
+# Executa o daemon irmão num barramento privado e valida as interfaces reais:
+../vegad/scripts/test-dbus-integration.sh
 ```
 
 Licenciado sob GPL-3.0.
