@@ -287,9 +287,11 @@ pub trait SoftwareClient: Send + Sync {
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError>;
     async fn clear_native_cache(&self) -> Result<u32, SoftwareClientError>;
     async fn nvidia_status(&self) -> Result<NvidiaStatus, SoftwareClientError>;
+    /// Legacy v1 endpoint: the daemon returns NotSupported without starting a transaction.
     async fn install_nvidia(&self, confirmed: bool) -> Result<u32, SoftwareClientError>;
     async fn check_nvidia(&self) -> Result<(bool, String), SoftwareClientError>;
     async fn non_free_firmware_status(&self) -> Result<NonFreeFirmwareStatus, SoftwareClientError>;
+    /// Legacy v1 endpoint: the daemon returns NotSupported without installing firmware.
     async fn install_non_free_firmware(&self, confirmed: bool) -> Result<u32, SoftwareClientError>;
 }
 

@@ -41,6 +41,7 @@ impl std::error::Error for HardwareClientError {}
 pub trait HardwareClient: Send + Sync {
     async fn inventory(&self) -> Result<HardwareInventory, HardwareClientError>;
     async fn firmware_status(&self) -> Result<String, HardwareClientError>;
+    /// Legacy v1 endpoint: the daemon returns NotSupported without changing drivers.
     async fn switch_nvidia_driver(&self, driver: &str) -> Result<(), HardwareClientError>;
 }
 

@@ -16,8 +16,9 @@
     </method>
 
     <method name="SwitchNvidiaDriver">
-      <!-- polkit: org.lyraos.vega.hardware.switch-driver -->
-      <!-- driver: "nvidia-open-dkms" | "nvidia-580xx-dkms" | "nouveau" -->
+      <!-- Retired: always returns org.freedesktop.DBus.Error.NotSupported.
+           Kept only for v1 compatibility; never installs or removes packages. -->
+      <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg name="driver" type="s" direction="in"/>
     </method>
 

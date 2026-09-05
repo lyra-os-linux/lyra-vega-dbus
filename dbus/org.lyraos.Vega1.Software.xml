@@ -128,13 +128,15 @@
     </method>
 
     <method name="NvidiaStatus">
-      <!-- Read-only conservative G06 hardware/package preflight. -->
+      <!-- Legacy read-only G06 diagnostics. Never advertises installation. -->
       <arg name="status" type="(bbbssssu)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="NvidiaStatus"/>
     </method>
 
     <method name="InstallNvidia">
-      <!-- polkit: org.lyraos.vega.software.install-nvidia; confirmed must be true. -->
+      <!-- Retired: always returns org.freedesktop.DBus.Error.NotSupported.
+           Kept only for v1 compatibility; never starts a transaction. -->
+      <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg name="confirmed" type="b" direction="in"/>
       <arg name="transactionId" type="u" direction="out"/>
     </method>
@@ -150,7 +152,9 @@
     </method>
 
     <method name="InstallNonFreeFirmware">
-      <!-- polkit: org.lyraos.vega.software.install-firmware -->
+      <!-- Retired: always returns org.freedesktop.DBus.Error.NotSupported.
+           Kept only for v1 compatibility; never starts a transaction. -->
+      <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg name="confirmed" type="b" direction="in"/>
       <arg name="transactionId" type="u" direction="out"/>
     </method>
