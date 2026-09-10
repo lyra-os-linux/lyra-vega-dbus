@@ -9,6 +9,8 @@ homepage = "https://github.com/lyra-os-linux/lyra-vega-dbus"
 description = "Cliente D-Bus tipado do contrato org.lyraos.Vega1, compartilhado entre os frontends do Vega"
 
 [dependencies]
+async-io = "2.6.0"
+async-lock = "3.4.2"
 async-trait = "0.1.89"
 futures-util = "0.3.32"
 futures-lite = "2.6.1"

@@ -17,6 +17,9 @@ Go do lado do daemon deve ser mantida em sincronia com `dbus/`.
 lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.1.22" }
 ```
 
+Veja [a correlação de transações com a instância do daemon](docs/software-owner-lifetime.md)
+para acompanhar operações e tratar interrupções sem repetir mutações.
+
 ## Desenvolvimento
 
 ```sh
