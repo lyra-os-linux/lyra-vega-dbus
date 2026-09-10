@@ -17,9 +17,12 @@ jobs:
         with:
           toolchain: "1.92"
           components: rustfmt, clippy
+      - name: Install private-bus test dependency
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends dbus-daemon
       - name: Verify reproducible contract crate
         run: |
           cargo test --locked
+          python3 -m unittest discover -s tests -v
           cargo fmt --all --check
           cargo clippy --locked --all-targets --all-features -- -D warnings
 
@@ -37,7 +40,7 @@ jobs:
         with:
           repository: lyra-os-linux/${{ matrix.repository }}
           path: consumer
-      - name: Verify consumer pins the published contract
+      - name: Verify consumer pins an explicit contract revision
         env:
           CONSUMER: ${{ matrix.repository }}
         run: ./lyra-vega-dbus/scripts/check-consumer-pin.sh "consumer" "$CONSUMER"

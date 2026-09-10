@@ -1,5 +1,11 @@
 use async_trait::async_trait;
 use futures_util::{FutureExt, StreamExt};
+use std::time::{Duration, Instant};
+use zbus::names::OwnedUniqueName;
+
+const SERVICE: &str = "org.lyraos.Vega1";
+/// Absolute observation limit; expiry never cancels or retries the daemon operation.
+pub const SOFTWARE_TRANSACTION_TIMEOUT: Duration = Duration::from_secs(2 * 60 * 60);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageRef {
@@ -242,11 +248,19 @@ pub enum SoftwareEvent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SoftwareClientError {
     Unavailable(String),
+    ServiceOwnerChanged,
+    TransactionTimedOut,
 }
 
 impl std::fmt::Display for SoftwareClientError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::ServiceOwnerChanged => f.write_str(&gettextrs::gettext(
+                "O serviço de software foi interrompido ou reiniciado. O resultado da operação não foi confirmado; verifique o estado do sistema antes de tentar novamente.",
+            )),
+            Self::TransactionTimedOut => f.write_str(&gettextrs::gettext(
+                "O prazo de acompanhamento terminou. A operação pode continuar em execução; verifique o estado do sistema antes de tentar novamente.",
+            )),
             Self::Unavailable(detail) => write!(
                 f,
                 "{}",
@@ -378,8 +392,11 @@ trait Software {
     ) -> zbus::Result<()>;
 }
 
+/// A software session is permanently bound to one unique bus owner. Create a
+/// new client explicitly after a daemon restart; pending mutations are never replayed.
 pub struct ZbusSoftwareClient {
     connection: zbus::Connection,
+    owner: async_lock::OnceCell<OwnedUniqueName>,
 }
 
 impl ZbusSoftwareClient {
@@ -387,22 +404,86 @@ impl ZbusSoftwareClient {
         let connection = zbus::Connection::system()
             .await
             .map_err(SoftwareClientError::unavailable)?;
-        Ok(Self { connection })
+        Ok(Self::from_connection(connection))
     }
 
     pub fn from_connection(connection: zbus::Connection) -> Self {
-        Self { connection }
+        Self {
+            connection,
+            owner: async_lock::OnceCell::new(),
+        }
+    }
+
+    async fn owner(&self) -> Result<&OwnedUniqueName, SoftwareClientError> {
+        self.owner
+            .get_or_try_init(|| async {
+                let bus = zbus::fdo::DBusProxy::new(&self.connection)
+                    .await
+                    .map_err(SoftwareClientError::unavailable)?;
+                let name = SERVICE.try_into().expect("static service name");
+                match bus.get_name_owner(name).await {
+                    Ok(owner) => Ok(owner),
+                    Err(zbus::fdo::Error::NameHasNoOwner(_)) => {
+                        bus.start_service_by_name(
+                            SERVICE.try_into().expect("static service name"),
+                            0,
+                        )
+                        .await
+                        .map_err(SoftwareClientError::unavailable)?;
+                        bus.get_name_owner(SERVICE.try_into().expect("static service name"))
+                            .await
+                            .map_err(SoftwareClientError::unavailable)
+                    }
+                    Err(error) => Err(SoftwareClientError::unavailable(error)),
+                }
+            })
+            .await
     }
 
     async fn proxy(&self) -> Result<SoftwareProxy<'_>, SoftwareClientError> {
-        SoftwareProxy::new(&self.connection)
+        let owner = self.owner().await?;
+        self.check_owner(owner).await?;
+        SoftwareProxy::builder(&self.connection)
+            .destination(owner.clone())
+            .map_err(SoftwareClientError::unavailable)?
+            .build()
             .await
             .map_err(SoftwareClientError::unavailable)
     }
 
+    async fn check_owner(&self, expected: &OwnedUniqueName) -> Result<(), SoftwareClientError> {
+        let bus = zbus::fdo::DBusProxy::new(&self.connection)
+            .await
+            .map_err(SoftwareClientError::unavailable)?;
+        match bus
+            .get_name_owner(SERVICE.try_into().expect("static service name"))
+            .await
+        {
+            Ok(owner) if owner == *expected => Ok(()),
+            Ok(_) | Err(zbus::fdo::Error::NameHasNoOwner(_)) => {
+                Err(SoftwareClientError::ServiceOwnerChanged)
+            }
+            Err(error) => Err(SoftwareClientError::unavailable(error)),
+        }
+    }
+
     pub async fn subscribe(&self) -> Result<SoftwareEventStream, SoftwareClientError> {
+        let bus = zbus::fdo::DBusProxy::new(&self.connection)
+            .await
+            .map_err(SoftwareClientError::unavailable)?;
+        // Install this match before resolving/activating the owner or subscribing
+        // to its signals, then recheck to cover replacement during setup.
+        let owner_changes = bus
+            .receive_name_owner_changed_with_args(&[(0, SERVICE)])
+            .await
+            .map_err(SoftwareClientError::unavailable)?;
         let proxy = self.proxy().await?;
-        Ok(SoftwareEventStream {
+        let owner = self.owner().await?.clone();
+        let stream = SoftwareEventStream {
+            owner_changes,
+            owner: owner.clone(),
+            terminal_error: None,
+            transaction_deadline: None,
             progress: proxy
                 .receive_transaction_progress()
                 .await
@@ -427,11 +508,17 @@ impl ZbusSoftwareClient {
                 .receive_repo_key_pending()
                 .await
                 .map_err(SoftwareClientError::unavailable)?,
-        })
+        };
+        self.check_owner(&owner).await?;
+        Ok(stream)
     }
 }
 
 pub struct SoftwareEventStream {
+    owner_changes: zbus::fdo::NameOwnerChangedStream,
+    owner: OwnedUniqueName,
+    terminal_error: Option<SoftwareClientError>,
+    transaction_deadline: Option<(u32, Instant)>,
     progress: TransactionProgressStream,
     finished: TransactionFinishedStream,
     package_progress: PackageProgressStream,
@@ -441,61 +528,129 @@ pub struct SoftwareEventStream {
 }
 
 impl SoftwareEventStream {
+    /// Observe this owner's events, ending permanently on owner/bus loss.
     pub async fn next(&mut self) -> Result<SoftwareEvent, SoftwareClientError> {
-        futures_util::select! {
-            signal = self.progress.next().fuse() => {
-                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
-                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
-                Ok(SoftwareEvent::Progress(SoftwareTransactionProgress {
-                    transaction_id: args.transaction_id,
-                    percent: args.percent,
-                    message: args.message.to_owned(),
-                }))
+        if let Some(error) = &self.terminal_error {
+            return Err(error.clone());
+        }
+        let result = self.next_event().await;
+        if let Err(error) = &result {
+            self.terminal_error = Some(error.clone());
+        }
+        result
+    }
+
+    /// Bound the whole transaction wait, including unrelated signals and progress.
+    /// Repeated calls do not extend the deadline. A Finished event permits the next
+    /// transaction in a queue; an error invalidates the stream permanently.
+    pub async fn next_transaction(
+        &mut self,
+        transaction_id: u32,
+    ) -> Result<SoftwareEvent, SoftwareClientError> {
+        self.next_transaction_with_timeout(transaction_id, SOFTWARE_TRANSACTION_TIMEOUT)
+            .await
+    }
+
+    async fn next_transaction_with_timeout(
+        &mut self,
+        transaction_id: u32,
+        timeout: Duration,
+    ) -> Result<SoftwareEvent, SoftwareClientError> {
+        if let Some(error) = &self.terminal_error {
+            return Err(error.clone());
+        }
+        let deadline = match self.transaction_deadline {
+            Some((id, deadline)) if id == transaction_id => deadline,
+            _ => {
+                let deadline = Instant::now() + timeout;
+                self.transaction_deadline = Some((transaction_id, deadline));
+                deadline
+            }
+        };
+        let result = futures_lite::future::or(
+            async {
+                async_io::Timer::at(deadline).await;
+                Err(SoftwareClientError::TransactionTimedOut)
             },
-            signal = self.finished.next().fuse() => {
-                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
-                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
-                Ok(SoftwareEvent::Finished(SoftwareTransactionFinished {
-                    transaction_id: args.transaction_id,
-                    success: args.success,
-                    message: args.message.to_owned(),
-                }))
-            },
-            signal = self.package_progress.next().fuse() => {
-                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
-                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
-                Ok(SoftwareEvent::PackageProgress(SoftwarePackageProgress {
-                    transaction_id: args.transaction_id,
-                    package: args.package.to_owned(),
-                    phase: args.phase.to_owned(),
-                    percent: args.percent,
-                }))
-            },
-            signal = self.console.next().fuse() => {
-                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
-                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
-                Ok(SoftwareEvent::ConsoleLine(SoftwareConsoleLine {
-                    transaction_id: args.transaction_id,
-                    source: args.source.to_owned(),
-                    line: args.line.to_owned(),
-                }))
-            },
-            signal = self.updates.next().fuse() => {
-                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
-                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
-                Ok(SoftwareEvent::UpdatesAvailable(args.count))
-            },
-            signal = self.key_pending.next().fuse() => {
-                let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
-                let args = signal.args().map_err(SoftwareClientError::unavailable)?;
-                Ok(SoftwareEvent::KeyPending(RepositoryKeyInfo {
-                    transaction_id: args.transaction_id,
-                    repo: args.repo.to_owned(),
-                    key_id: args.key_id.to_owned(),
-                    fingerprint: args.fingerprint.to_owned(),
-                    user_id: args.user_id.to_owned(),
-                }))
-            },
+            self.next(),
+        )
+        .await;
+        if let Ok(SoftwareEvent::Finished(event)) = &result
+            && event.transaction_id == transaction_id
+        {
+            self.transaction_deadline = None;
+        }
+        if let Err(error) = &result {
+            self.terminal_error = Some(error.clone());
+        }
+        result
+    }
+
+    async fn next_event(&mut self) -> Result<SoftwareEvent, SoftwareClientError> {
+        loop {
+            futures_util::select! {
+                change = self.owner_changes.next().fuse() => {
+                    let change = change.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = change.args().map_err(SoftwareClientError::unavailable)?;
+                    if args.old_owner.as_ref().is_some_and(|owner| owner.as_str() == self.owner.as_str()) {
+                        return Err(SoftwareClientError::ServiceOwnerChanged);
+                    }
+                    continue;
+                },
+                signal = self.progress.next().fuse() => {
+                    let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                    return Ok(SoftwareEvent::Progress(SoftwareTransactionProgress {
+                        transaction_id: args.transaction_id,
+                        percent: args.percent,
+                        message: args.message.to_owned(),
+                    }))
+                },
+                signal = self.finished.next().fuse() => {
+                    let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                    return Ok(SoftwareEvent::Finished(SoftwareTransactionFinished {
+                        transaction_id: args.transaction_id,
+                        success: args.success,
+                        message: args.message.to_owned(),
+                    }))
+                },
+                signal = self.package_progress.next().fuse() => {
+                    let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                    return Ok(SoftwareEvent::PackageProgress(SoftwarePackageProgress {
+                        transaction_id: args.transaction_id,
+                        package: args.package.to_owned(),
+                        phase: args.phase.to_owned(),
+                        percent: args.percent,
+                    }))
+                },
+                signal = self.console.next().fuse() => {
+                    let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                    return Ok(SoftwareEvent::ConsoleLine(SoftwareConsoleLine {
+                        transaction_id: args.transaction_id,
+                        source: args.source.to_owned(),
+                        line: args.line.to_owned(),
+                    }))
+                },
+                signal = self.updates.next().fuse() => {
+                    let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                    return Ok(SoftwareEvent::UpdatesAvailable(args.count))
+                },
+                signal = self.key_pending.next().fuse() => {
+                    let signal = signal.ok_or_else(SoftwareClientError::stream_ended)?;
+                    let args = signal.args().map_err(SoftwareClientError::unavailable)?;
+                    return Ok(SoftwareEvent::KeyPending(RepositoryKeyInfo {
+                        transaction_id: args.transaction_id,
+                        repo: args.repo.to_owned(),
+                        key_id: args.key_id.to_owned(),
+                        fingerprint: args.fingerprint.to_owned(),
+                        user_id: args.user_id.to_owned(),
+                    }))
+                },
+            }
         }
     }
 }
@@ -800,3 +955,7 @@ mod tests {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "software_owner_loss_tests.rs"]
+mod owner_loss_tests;

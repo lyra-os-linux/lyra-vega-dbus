@@ -451,6 +451,8 @@ dependencies = [
 name = "lyra-vega-dbus"
 version = "5.1.22"
 dependencies = [
+ "async-io",
+ "async-lock",
  "async-trait",
  "futures-lite",
  "futures-util",
