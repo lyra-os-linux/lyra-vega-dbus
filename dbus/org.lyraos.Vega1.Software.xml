@@ -128,21 +128,33 @@
     </method>
 
     <method name="NvidiaStatus">
-      <!-- Legacy read-only G06 diagnostics. Never advertises installation. -->
+      <!-- Public, unprivileged NVIDIA diagnostics. State semantics depend on
+           Metadata.Capabilities; nvidia-official-v1 is the qualified G07 flow. -->
       <arg name="status" type="(bbbssssu)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="NvidiaStatus"/>
     </method>
 
+    <method name="NvidiaRecovery">
+      <!-- Public query, capability nvidia-recovery-v1. Available is preflight,
+           not proof that a recovery point exists. Kind: snapper/restic-offline.
+           Reference is opaque; do not put a Restic ID in RecoverySnapshot.
+           State: unprepared/ready/installed/failed/restoring/restored.
+           Technical detail contains no backup secrets or private OS content. -->
+      <arg name="recovery" type="(bssss)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="NvidiaRecovery"/>
+    </method>
+
     <method name="InstallNvidia">
-      <!-- Retired: always returns org.freedesktop.DBus.Error.NotSupported.
-           Kept only for v1 compatibility; never starts a transaction. -->
-      <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
+      <!-- Require nvidia-official-v1 capability, explicit user confirmation and
+           administrative authorization. Earlier daemons return NotSupported.
+           False confirmation cancels before authorization or any mutation. -->
       <arg name="confirmed" type="b" direction="in"/>
       <arg name="transactionId" type="u" direction="out"/>
     </method>
 
     <method name="CheckNvidia">
-      <!-- Post-reboot read-only validation of nvidia-smi and DRM connectors. -->
+      <!-- Read-only validation of the qualified module, RPM stack and NVML.
+           Does not change suspend policy or claim rendering/suspend qualification. -->
       <arg name="success" type="b" direction="out"/>
       <arg name="message" type="s" direction="out"/>
     </method>
