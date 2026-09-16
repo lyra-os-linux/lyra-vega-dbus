@@ -48,9 +48,10 @@ pub use network::{
 pub use services::{ManagedService, ServicesClient, ServicesClientError, ZbusServicesClient};
 pub use snapshots::{Snapshot, SnapshotsClient, SnapshotsClientError, ZbusSnapshotsClient};
 pub use software::{
-    NonFreeFirmwareStatus, NvidiaStatus, PackageDetails, PackageRef, RepositoryKeyInfo,
-    RepositoryRef, SoftwareClient, SoftwareClientError, SoftwareEvent, SoftwareEventStream,
-    SoftwareTransactionFinished, SoftwareTransactionProgress, UpdateStatus, ZbusSoftwareClient,
+    NonFreeFirmwareStatus, NvidiaRecovery, NvidiaStatus, PackageDetails, PackageRef,
+    RepositoryKeyInfo, RepositoryRef, SoftwareClient, SoftwareClientError, SoftwareEvent,
+    SoftwareEventStream, SoftwareTransactionFinished, SoftwareTransactionProgress, UpdateStatus,
+    ZbusSoftwareClient,
 };
 pub use storage::{StorageClient, StorageClientError, StorageVolume, ZbusStorageClient};
 pub use system::{

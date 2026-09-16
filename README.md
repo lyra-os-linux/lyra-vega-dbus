@@ -36,3 +36,17 @@ cargo clippy --locked --all-targets --all-features -- -D warnings
 ```
 
 Licenciado sob GPL-3.0.
+
+## NVIDIA capability
+
+`nvidia-official-v1` restores `InstallNvidia(bool)` for the qualified optional
+Desktop/Server flow, with explicit review, Polkit authorization and recovery checks.
+Gate installation on this capability; older daemons retired the endpoint.
+`NvidiaStatus`/`CheckNvidia` remain public reads, with no authorization prompt
+or suspend-policy mutation. Their tuples and signatures remain compatible.
+`nvidia-recovery-v1` adds `NvidiaRecovery() -> (bssss)`: availability, strategy,
+opaque reference, state and technical detail. Ext4 references never occupy the
+numeric Snapper field. Availability is a preflight, not proof of a stored backup.
+
+See [the daemon contract](https://github.com/lyra-os-linux/vegad/blob/main/docs/nvidia.md)
+for state semantics and qualified-version limits.
