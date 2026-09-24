@@ -11,6 +11,7 @@ mod metadata;
 mod mock;
 mod monitor;
 mod network;
+mod preparation;
 mod services;
 mod snapshots;
 mod software;
@@ -59,3 +60,7 @@ pub use system::{
     ZbusSystemClient,
 };
 pub use users::{UserInfo, UsersClient, UsersClientError, ZbusUsersClient};
+
+pub use preparation::{
+    PreparationClient, PreparationClientError, PreparationStatus, ZbusPreparationClient,
+};

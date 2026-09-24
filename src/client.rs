@@ -1,8 +1,8 @@
 use super::{
     ZbusBackupClient, ZbusBluetoothClient, ZbusDateTimeClient, ZbusFirewallClient,
     ZbusHardwareClient, ZbusKernelClient, ZbusLogsClient, ZbusMetadataClient, ZbusMonitorClient,
-    ZbusNetworkClient, ZbusServicesClient, ZbusSnapshotsClient, ZbusSoftwareClient,
-    ZbusStorageClient, ZbusSystemClient, ZbusUsersClient,
+    ZbusNetworkClient, ZbusPreparationClient, ZbusServicesClient, ZbusSnapshotsClient,
+    ZbusSoftwareClient, ZbusStorageClient, ZbusSystemClient, ZbusUsersClient,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,6 +40,10 @@ impl VegaDbus {
 
     pub fn metadata(&self) -> ZbusMetadataClient {
         ZbusMetadataClient::from_connection(self.connection.clone())
+    }
+
+    pub fn preparation(&self) -> ZbusPreparationClient {
+        ZbusPreparationClient::from_connection(self.connection.clone())
     }
 
     pub fn software(&self) -> ZbusSoftwareClient {
