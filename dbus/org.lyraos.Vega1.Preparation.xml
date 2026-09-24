@@ -4,6 +4,15 @@
     <method name="GetStatus">
       <arg name="status" type="(ssssssb)" direction="out"/>
     </method>
+    <method name="GetPendingKeys">
+      <arg name="keys" type="a(ssss)" direction="out"/>
+    </method>
+    <method name="ApproveKey">
+      <arg name="repo" type="s" direction="in"/>
+      <arg name="fingerprint" type="s" direction="in"/>
+      <arg name="token" type="s" direction="in"/>
+      <arg name="transaction_id" type="u" direction="out"/>
+    </method>
     <!-- Requires org.lyraos.vega.software.manage-repos; asynchronous start. -->
     <method name="Retry"/>
   </interface>

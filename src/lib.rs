@@ -62,5 +62,6 @@ pub use system::{
 pub use users::{UserInfo, UsersClient, UsersClientError, ZbusUsersClient};
 
 pub use preparation::{
-    PreparationClient, PreparationClientError, PreparationStatus, ZbusPreparationClient,
+    PreparationClient, PreparationClientError, PreparationKey, PreparationStatus,
+    ZbusPreparationClient,
 };
