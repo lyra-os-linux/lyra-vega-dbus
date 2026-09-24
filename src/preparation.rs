@@ -13,6 +13,15 @@ pub struct PreparationStatus {
     pub can_retry: bool,
 }
 
+/// A persistent review proposal; the opaque token binds source identity and key.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreparationKey {
+    pub repo: String,
+    pub fingerprint: String,
+    pub user_id: String,
+    pub token: String,
+}
+
 type PreparationRow = (String, String, String, String, String, String, bool);
 impl From<PreparationRow> for PreparationStatus {
     fn from(row: PreparationRow) -> Self {
@@ -72,6 +81,12 @@ impl std::error::Error for PreparationClientError {}
 pub trait PreparationClient: Send + Sync {
     /// Returns None for older daemons which do not implement this interface.
     async fn status(&self) -> Result<Option<PreparationStatus>, PreparationClientError>;
+    async fn pending_keys(&self) -> Result<Vec<PreparationKey>, PreparationClientError> {
+        Ok(Vec::new())
+    }
+    async fn approve_key(&self, _key: &PreparationKey) -> Result<u32, PreparationClientError> {
+        Err(PreparationClientError::Unavailable)
+    }
     /// Requests an authorized retry; completion is observed through status().
     async fn retry(&self) -> Result<(), PreparationClientError>;
 }
@@ -83,6 +98,8 @@ pub trait PreparationClient: Send + Sync {
 )]
 trait Preparation {
     async fn get_status(&self) -> zbus::Result<PreparationRow>;
+    async fn get_pending_keys(&self) -> zbus::Result<Vec<(String, String, String, String)>>;
+    async fn approve_key(&self, repo: &str, fingerprint: &str, token: &str) -> zbus::Result<u32>;
     async fn retry(&self) -> zbus::Result<()>;
 }
 
@@ -98,6 +115,37 @@ impl ZbusPreparationClient {
 
 #[async_trait]
 impl PreparationClient for ZbusPreparationClient {
+    async fn pending_keys(&self) -> Result<Vec<PreparationKey>, PreparationClientError> {
+        let proxy = PreparationProxy::new(&self.connection)
+            .await
+            .map_err(PreparationClientError::from_error)?;
+        match proxy
+            .get_pending_keys()
+            .await
+            .map_err(PreparationClientError::from_error)
+        {
+            Ok(rows) => Ok(rows
+                .into_iter()
+                .map(|(repo, fingerprint, user_id, token)| PreparationKey {
+                    repo,
+                    fingerprint,
+                    user_id,
+                    token,
+                })
+                .collect()),
+            Err(PreparationClientError::Unavailable) => Ok(Vec::new()),
+            Err(error) => Err(error),
+        }
+    }
+    async fn approve_key(&self, key: &PreparationKey) -> Result<u32, PreparationClientError> {
+        PreparationProxy::new(&self.connection)
+            .await
+            .map_err(PreparationClientError::from_error)?
+            .approve_key(&key.repo, &key.fingerprint, &key.token)
+            .await
+            .map_err(PreparationClientError::from_error)
+    }
+
     async fn status(&self) -> Result<Option<PreparationStatus>, PreparationClientError> {
         let proxy = PreparationProxy::new(&self.connection)
             .await
@@ -196,7 +244,15 @@ mod tests {
             .collect();
         assert_eq!(
             methods,
-            vec![("GetStatus", vec![("(ssssssb)", "out")]), ("Retry", vec![])]
+            vec![
+                ("GetStatus", vec![("(ssssssb)", "out")]),
+                ("GetPendingKeys", vec![("a(ssss)", "out")]),
+                (
+                    "ApproveKey",
+                    vec![("s", "in"), ("s", "in"), ("s", "in"), ("u", "out")]
+                ),
+                ("Retry", vec![])
+            ]
         );
     }
 }
