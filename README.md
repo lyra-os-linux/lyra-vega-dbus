@@ -1,9 +1,12 @@
 # lyra-vega-dbus
 
 Cliente D-Bus tipado do contrato `org.lyraos.Vega1`, compartilhado entre os
-frontends do [Vega](https://github.com/lyra-os-linux/vega)
-([`vega-gtk`](https://github.com/lyra-os-linux/vega)) e
-[`vega-web`](https://github.com/lyra-os-linux/vega-web).
+frontends Rust do Vega: [`vega-gtk`](https://github.com/lyra-os-linux/vega),
+[`vega-web`](https://github.com/lyra-os-linux/vega-web) e o fork experimental
+[`vega-xfce`](https://github.com/lyra-os-linux/vega-xfce). Os demais frontends
+consomem só o contrato XML em `dbus/`:
+[`vega-cli`](https://github.com/lyra-os-linux/vega-cli) via `busctl` e
+[`vega-qt`](https://github.com/lyra-os-linux/vega-qt) via QtDBus.
 
 O contrato em si — a introspecção XML de cada interface — está em `dbus/`,
 implementado pelo daemon [`vegad`](https://github.com/lyra-os-linux/vegad).
