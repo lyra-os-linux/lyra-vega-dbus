@@ -18,6 +18,7 @@ consomem tudo pelo mesmo contrato. A especificação completa está em
 | `disk-bench` | `fio`, sequencial, aleatório e latência QD1, até ~5 GiB escritos | sim |
 | `logs` | erros por boot, coredumps de 7 dias e unidades que falharam | não |
 | `platform` | temperaturas, bateria, firmware, NTP, Secure Boot, kernel *tainted*, SELinux | não |
+| `security` | firewall, portas expostas, patches de segurança, SSH, SELinux, Secure Boot, criptografia da raiz, contas sem senha, `sudo` (`diagnostics-v3`) | não |
 
 O teste de GPU roda no frontend, na sessão do usuário, e não passa pelo
 contrato. Um teste que não pode rodar aparece em `ListTests` com
@@ -148,7 +149,10 @@ mais recentes.
 | `reinstall-packages` | `packages.binary-changed`, `packages.missing` | reinstala os pacotes donos dos arquivos (`zypper install -f`) |
 | `verify-dependencies` | `packages.broken-deps` | instala o que o `zypper verify` aponta |
 | `restart-units` | `logs.failed-units` | `systemctl reset-failed` e reinício das unidades |
-| `enable-ntp` | `platform.ntp` | liga a sincronização de hora |
+| `enable-ntp` | `platform.ntp-off` | liga a sincronização de hora |
+| `enable-firewall` | `security.firewall-off` | `systemctl enable --now firewalld` (`diagnostics-v3`) |
+| `close-port` | `security.exposed-port` | tira o serviço ou a porta da zona, permanente e em execução (`diagnostics-v3`) |
+| `apply-security-patches` | `security.patches-pending` | `zypper patch --category security`, dentro do snapshot (`diagnostics-v3`) |
 
 Nada que mexa em disco, partição ou sistema de arquivos tem conserto
 automático: erros de SMART, scrub ou btrfs pedem backup e orientação.

@@ -42,5 +42,27 @@
       <arg name="port" type="s" direction="in"/>
       <arg name="protocol" type="s" direction="in"/>
     </method>
+
+    <!-- What listens on the network and whether the firewall lets it in
+         (capability "network-exposure-v1"; lyra-ecosystem openspec change
+         add-security-review). ListeningSocket struct:
+           (protocol, address, port, executable, unit, reach, state, zone)
+         protocol  "tcp" (LISTEN) or "udp" (bound)
+         reach     "local"    loopback only
+                   "link"     link-local, or a docker*/virbr*/veth* bridge
+                   "network"  any other address, including 0.0.0.0 and ::
+         state     "exposed"  reach is network and the zone of the interface
+                              lets the port in (service, port or target
+                              ACCEPT), or firewalld is not running
+                   "filtered" reach is network and no zone lets it in
+                   ""         reach is local or link
+         zone      the firewalld zone that decided state; empty otherwise
+         unit      the systemd unit owning the process; empty for a process
+                   started outside a unit (e.g. from a terminal) -->
+    <method name="ListListening">
+      <!-- polkit: org.lyraos.vega.firewall.read-admin (brokered, silent for
+           the active local session, like ListServices) -->
+      <arg name="sockets" type="a(ssqsssss)" direction="out"/>
+    </method>
   </interface>
 </node>

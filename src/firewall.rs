@@ -47,6 +47,47 @@ impl From<(String, String)> for FirewallPort {
     }
 }
 
+/// Capability of daemons that implement `ListListening`.
+pub const NETWORK_EXPOSURE_CAPABILITY: &str = "network-exposure-v1";
+
+/// A socket listening on the machine, crossed with firewalld.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListeningSocket {
+    pub protocol: String,
+    pub address: String,
+    pub port: u16,
+    pub executable: String,
+    pub unit: String,
+    /// `local`, `link` or `network`.
+    pub reach: String,
+    /// `exposed`, `filtered`, or empty when `reach` is not `network`.
+    pub state: String,
+    pub zone: String,
+}
+
+type ListeningRow = (String, String, u16, String, String, String, String, String);
+
+impl From<ListeningRow> for ListeningSocket {
+    fn from(row: ListeningRow) -> Self {
+        Self {
+            protocol: row.0,
+            address: row.1,
+            port: row.2,
+            executable: row.3,
+            unit: row.4,
+            reach: row.5,
+            state: row.6,
+            zone: row.7,
+        }
+    }
+}
+
+impl ListeningSocket {
+    pub fn is_exposed(&self) -> bool {
+        self.state == "exposed"
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FirewallClientError(String);
 
@@ -77,6 +118,7 @@ pub trait FirewallClient: Send + Sync {
     async fn ports(&self) -> Result<Vec<FirewallPort>, FirewallClientError>;
     async fn add_port(&self, port: &str, protocol: &str) -> Result<(), FirewallClientError>;
     async fn remove_port(&self, port: &str, protocol: &str) -> Result<(), FirewallClientError>;
+    async fn listening(&self) -> Result<Vec<ListeningSocket>, FirewallClientError>;
 }
 
 #[zbus::proxy(
@@ -91,6 +133,7 @@ trait Firewall {
     async fn list_ports(&self) -> zbus::Result<Vec<(String, String)>>;
     async fn add_port(&self, port: &str, protocol: &str) -> zbus::Result<()>;
     async fn remove_port(&self, port: &str, protocol: &str) -> zbus::Result<()>;
+    async fn list_listening(&self) -> zbus::Result<Vec<ListeningRow>>;
 }
 
 pub struct ZbusFirewallClient {
@@ -161,6 +204,15 @@ impl FirewallClient for ZbusFirewallClient {
             .await
             .map_err(FirewallClientError::from_error)
     }
+
+    async fn listening(&self) -> Result<Vec<ListeningSocket>, FirewallClientError> {
+        self.proxy()
+            .await?
+            .list_listening()
+            .await
+            .map(|rows| rows.into_iter().map(Into::into).collect())
+            .map_err(FirewallClientError::from_error)
+    }
 }
 
 #[cfg(test)]
@@ -175,8 +227,28 @@ mod tests {
             "ListPorts",
             "AddPort",
             "RemovePort",
+            "ListListening",
         ] {
             assert!(xml.contains(&format!("<method name=\"{method}\">")));
         }
+        assert!(xml.contains(r#"<arg name="sockets" type="a(ssqsssss)" direction="out"/>"#));
+        assert!(xml.contains(super::NETWORK_EXPOSURE_CAPABILITY));
+    }
+
+    #[test]
+    fn listening_rows_map_to_sockets() {
+        let socket = super::ListeningSocket::from((
+            "tcp".into(),
+            "0.0.0.0".into(),
+            22,
+            "/usr/sbin/sshd".into(),
+            "sshd.service".into(),
+            "network".into(),
+            "exposed".into(),
+            "public".into(),
+        ));
+        assert!(socket.is_exposed());
+        assert_eq!(socket.port, 22);
+        assert_eq!(socket.unit, "sshd.service");
     }
 }

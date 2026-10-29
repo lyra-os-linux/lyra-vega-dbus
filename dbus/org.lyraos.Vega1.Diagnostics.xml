@@ -7,7 +7,10 @@
          calling any member of this interface.
 
          Test ids: packages | disk-health | fs-scrub | cpu-stress |
-                   memory-stress | disk-bench | logs | platform
+                   memory-stress | disk-bench | logs | platform |
+                   security ("diagnostics-v3": firewall, exposed ports,
+                   security patches, SSH, SELinux, Secure Boot, disk
+                   encryption, accounts without password, sudo policy)
          The GPU test runs in the frontend (user session) and never reaches
          vegad. Unknown ids are rejected with NotSupported.
 
@@ -85,6 +88,11 @@
            verify-dependencies  install what zypper verify finds missing
            restart-units        reset-failed and restart the failed units
            enable-ntp           turn on network time synchronization
+         with "diagnostics-v3" (findings of the security test):
+           enable-firewall         enable and start firewalld
+           close-port              remove a service or port from a zone,
+                                   permanently and at runtime
+           apply-security-patches  zypper patch, security category only
          The details (which packages, which units) come from the report vegad
          stored, never from the caller. A snapshot is taken first when the
          system supports it; afterwards the affected tests run again. The
