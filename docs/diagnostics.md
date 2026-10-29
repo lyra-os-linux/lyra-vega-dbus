@@ -124,6 +124,9 @@ mais recentes.
 }
 ```
 
+- Um achado consertável tem `"remedy": "<id>"` (ver **Reparo**). Os detalhes
+  do conserto ficam em `"remedyArgs"`, só para leitura: o vegad usa a cópia
+  que ele gravou, nunca a que o frontend enviar.
 - `severity` vale `info`, `attention` ou `fail`. `info` agrupa o ruído
   conhecido (bugs de firmware ACPI, avisos comuns de boot e afins).
 - `code` é estável. Os frontends traduzem e agrupam por ele, nunca pelo `text`.
@@ -134,3 +137,31 @@ mais recentes.
   `finished`. O relatório é gravado a cada etapa.
 - Um campo novo não muda o `schema`. Remover ou mudar o significado de um campo
   exige `schema: 2`.
+
+## Reparo (`diagnostics-v2`)
+
+`Repair(jobId, remedies)` aplica consertos seguros propostos pelo relatório de
+`jobId`. Só existem estes, todos reversíveis pelo snapshot criado antes:
+
+| `remedy` | Origem | O que faz |
+| --- | --- | --- |
+| `reinstall-packages` | `packages.binary-changed`, `packages.missing` | reinstala os pacotes donos dos arquivos (`zypper install -f`) |
+| `verify-dependencies` | `packages.broken-deps` | instala o que o `zypper verify` aponta |
+| `restart-units` | `logs.failed-units` | `systemctl reset-failed` e reinício das unidades |
+| `enable-ntp` | `platform.ntp` | liga a sincronização de hora |
+
+Nada que mexa em disco, partição ou sistema de arquivos tem conserto
+automático: erros de SMART, scrub ou btrfs pedem backup e orientação.
+
+O reparo é um job como o de `Start`, com os mesmos sinais:
+1. Etapas `repair:<remedy>`: o veredito `ok` significa que o conserto foi
+   aplicado, e `fail`, que não foi.
+2. Os testes afetados rodam de novo e dizem se o problema sumiu.
+
+O relatório do reparo leva `"repairOf": <jobId>`.
+
+Erros: `Busy` (outro job ou transação em curso) e `NotSupported` (job
+desconhecido, ou remédio que não está no relatório dele).
+
+Polkit: `org.lyraos.vega.hardware.repair` (`auth_admin`, sem retenção: altera
+o sistema).
