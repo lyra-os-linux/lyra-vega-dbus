@@ -732,10 +732,19 @@ mod tests {
         futures_lite::future::block_on(async {
             let client = ZbusDiagnosticsClient::connect().await.unwrap();
             let tests = client.list_tests().await.unwrap();
+            // A newer daemon may announce tests this client does not know yet
+            // (gated by a newer capability); every test this client knows
+            // must still be there.
+            let ids: Vec<&str> = tests.iter().map(|test| test.id.as_str()).collect();
             assert!(
-                tests
-                    .iter()
-                    .all(|test| DIAGNOSTIC_TEST_IDS.contains(&test.id.as_str()))
+                ids.contains(&"packages") && ids.contains(&"logs"),
+                "{ids:?}"
+            );
+            assert!(
+                ids.iter()
+                    .all(|id| !id.is_empty()
+                        && id.chars().all(|c| c.is_ascii_lowercase() || c == '-')),
+                "{ids:?}"
             );
             client.current().await.unwrap();
             drop(client.subscribe().await.unwrap());
