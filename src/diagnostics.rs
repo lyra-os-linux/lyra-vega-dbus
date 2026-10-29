@@ -11,17 +11,25 @@ pub const DIAGNOSTICS_CAPABILITY: &str = "diagnostics-v1";
 /// Capability of daemons that also implement `Repair`.
 pub const DIAGNOSTICS_REPAIR_CAPABILITY: &str = "diagnostics-v2";
 
-/// Remedy ids `Repair` accepts, as they appear in a report's findings.
-pub const DIAGNOSTIC_REMEDIES: [&str; 4] = [
+/// Remedy ids `Repair` accepts, as they appear in a report's findings. The
+/// last three need `diagnostics-v3`.
+pub const DIAGNOSTIC_REMEDIES: &[&str] = &[
     "reinstall-packages",
     "verify-dependencies",
     "restart-units",
     "enable-ntp",
+    "enable-firewall",
+    "close-port",
+    "apply-security-patches",
 ];
+
+/// Capability of daemons with the `security` test and its remedies.
+pub const DIAGNOSTICS_SECURITY_CAPABILITY: &str = "diagnostics-v3";
 
 /// Test ids run by vegad, in the order the daemon recommends running them.
 /// The GPU test runs in the frontend and is not part of the contract.
-pub const DIAGNOSTIC_TEST_IDS: [&str; 8] = [
+/// `security` needs `diagnostics-v3`.
+pub const DIAGNOSTIC_TEST_IDS: &[&str] = &[
     "packages",
     "disk-health",
     "fs-scrub",
@@ -30,6 +38,7 @@ pub const DIAGNOSTIC_TEST_IDS: [&str; 8] = [
     "disk-bench",
     "logs",
     "platform",
+    "security",
 ];
 
 /// A test as reported by `ListTests`.
@@ -601,7 +610,7 @@ mod tests {
 
     #[test]
     fn xml_documents_every_test_id_and_error() {
-        for id in DIAGNOSTIC_TEST_IDS {
+        for id in DIAGNOSTIC_TEST_IDS.iter().copied() {
             assert!(DIAGNOSTICS_XML.contains(id), "{id} ausente do XML");
         }
         for error in ["Busy", "OnBattery", "InsufficientResources", "NotSupported"] {
@@ -609,7 +618,8 @@ mod tests {
         }
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_REPAIR_CAPABILITY));
-        for remedy in DIAGNOSTIC_REMEDIES {
+        assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_SECURITY_CAPABILITY));
+        for remedy in DIAGNOSTIC_REMEDIES.iter().copied() {
             assert!(DIAGNOSTICS_XML.contains(remedy), "{remedy} ausente do XML");
         }
     }

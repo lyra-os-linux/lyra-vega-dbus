@@ -32,14 +32,14 @@ pub use client::{DbusConnectionError, VegaDbus};
 pub use datetime::{DateTimeClient, DateTimeClientError, DateTimeStatus, ZbusDateTimeClient};
 pub use diagnostics::{
     DIAGNOSTIC_REMEDIES, DIAGNOSTIC_TEST_IDS, DIAGNOSTICS_CAPABILITY,
-    DIAGNOSTICS_REPAIR_CAPABILITY, DiagnosticFinished, DiagnosticJob, DiagnosticOptions,
-    DiagnosticProgress, DiagnosticSample, DiagnosticStageFinished, DiagnosticTest,
-    DiagnosticVerdict, DiagnosticsClient, DiagnosticsClientError, DiagnosticsEvent,
-    DiagnosticsEventStream, ZbusDiagnosticsClient,
+    DIAGNOSTICS_REPAIR_CAPABILITY, DIAGNOSTICS_SECURITY_CAPABILITY, DiagnosticFinished,
+    DiagnosticJob, DiagnosticOptions, DiagnosticProgress, DiagnosticSample,
+    DiagnosticStageFinished, DiagnosticTest, DiagnosticVerdict, DiagnosticsClient,
+    DiagnosticsClientError, DiagnosticsEvent, DiagnosticsEventStream, ZbusDiagnosticsClient,
 };
 pub use firewall::{
     FirewallClient, FirewallClientError, FirewallPort, FirewallService, FirewallStatus,
-    ZbusFirewallClient,
+    ListeningSocket, NETWORK_EXPOSURE_CAPABILITY, ZbusFirewallClient,
 };
 pub use hardware::{HardwareClient, HardwareClientError, HardwareInventory, ZbusHardwareClient};
 pub use kernel::{BootStatus, KernelClient, KernelClientError, ZbusKernelClient};
