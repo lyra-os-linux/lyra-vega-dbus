@@ -52,6 +52,13 @@ numeric Snapper field. Availability is a preflight, not proof of a stored backup
 See [the daemon contract](https://github.com/lyra-os-linux/vegad/blob/main/docs/nvidia.md)
 for state semantics and qualified-version limits.
 
+## Space cleanup capability
+
+`space-cleanup-v1` announces `org.lyraos.Vega1.Cleanup`: `Scan` measures the
+system categories (core dumps, journal, package cache, unused Flatpak
+runtimes, old kernels, snapshot cleanup) without deleting anything, and
+`Clean` runs them as a job. See [the cleanup contract](docs/cleanup.md).
+
 ## Diagnostics capability
 
 `diagnostics-v1` announces `org.lyraos.Vega1.Diagnostics`: health tests run by

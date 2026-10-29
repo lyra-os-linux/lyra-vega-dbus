@@ -1,0 +1,81 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Cleanup">
+    <!-- Space the system can give back without touching personal files.
+         Announced by the "space-cleanup-v1" capability in
+         Metadata.Capabilities; frontends must check it before calling any
+         member of this interface. Files in the user's home (trash,
+         thumbnails, ~/.cache, user Flatpak runtimes) are cleaned by the
+         frontend in the user session and never reach vegad.
+
+         Category ids:
+           coredumps       files in /var/lib/systemd/coredump
+           journal         archived journal files beyond 500 MB, never
+                           touching the current or the previous boot
+           package-cache   /var/cache/zypp/packages (zypper clean)
+           flatpak-unused  system runtimes no application uses
+           old-kernels     kernels purge-kernels would remove, following
+                           multiversion.kernels; never the running kernel
+                           nor the newest one; runs inside a snapshot pair
+           snapshots       snapper cleanup number and timeline, which follow
+                           the configured retention policy
+         Unknown ids are rejected with NotSupported.
+
+         Errors (org.lyraos.Vega1.Error.*):
+           Busy          a diagnostic, cleanup or a Zypper, snapshot or
+                         backup transaction is running
+           NotSupported  unknown category id or empty list -->
+
+    <!-- CleanupCategory struct: (id, bytes, canClean, detail)
+         bytes: what cleaning frees; 0 when nothing or when unknown.
+         detail: ";"-separated tokens, unknown tokens must be ignored:
+           "count=<n>"          files, runtimes, kernels or snapshots
+           "size=unknown"       bytes cannot be measured beforehand
+                                (snapshots without btrfs quotas)
+           "minimum"            count is a lower bound
+           "reason=<id>"        why canClean is false; frontends localize:
+                                  nothing                nothing to clean
+                                  busy                   another operation runs
+                                  missing-tool:<package> tool not installed
+                                  not-configured         e.g. no snapper config
+           "item=<text>"        one entry (kernel version, runtime ref),
+                                repeated; at most 20
+         Scan only measures; it never deletes anything. -->
+    <method name="Scan">
+      <!-- polkit: org.lyraos.vega.storage.read-admin (allow_active yes, no prompt) -->
+      <arg name="categories" type="a(stbs)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;CleanupCategory&gt;"/>
+    </method>
+
+    <!-- Cleans the given categories in the order received and returns the
+         job id. Progress, CategoryFinished and Finished follow. -->
+    <method name="Clean">
+      <!-- polkit: org.lyraos.vega.storage.cleanup -->
+      <arg name="ids" type="as" direction="in"/>
+      <arg name="jobId" type="u" direction="out"/>
+    </method>
+
+    <signal name="Progress">
+      <arg name="jobId" type="u"/>
+      <arg name="id" type="s"/>
+      <arg name="percent" type="u"/>
+      <arg name="message" type="s"/>
+    </signal>
+
+    <!-- result: ok | failed | skipped; freedBytes measured after cleaning -->
+    <signal name="CategoryFinished">
+      <arg name="jobId" type="u"/>
+      <arg name="id" type="s"/>
+      <arg name="result" type="s"/>
+      <arg name="freedBytes" type="t"/>
+    </signal>
+
+    <!-- result: ok | partial | failed; freedBytes is the total -->
+    <signal name="Finished">
+      <arg name="jobId" type="u"/>
+      <arg name="result" type="s"/>
+      <arg name="freedBytes" type="t"/>
+    </signal>
+  </interface>
+</node>
