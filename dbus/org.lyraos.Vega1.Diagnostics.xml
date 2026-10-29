@@ -1,0 +1,111 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Diagnostics">
+    <!-- Health tests run by vegad as root. Announced by the "diagnostics-v1"
+         capability in Metadata.Capabilities; frontends must check it before
+         calling any member of this interface.
+
+         Test ids: packages | disk-health | fs-scrub | cpu-stress |
+                   memory-stress | disk-bench | logs | platform
+         The GPU test runs in the frontend (user session) and never reaches
+         vegad. Unknown ids are rejected with NotSupported.
+
+         Verdicts (StageFinished): ok | attention | fail | unavailable |
+                                   cancelled | aborted
+         Results (Finished):       ok | attention | fail | cancelled | aborted
+         "aborted" means a safeguard stopped the job (temperature, power).
+
+         Errors (org.lyraos.Vega1.Error.*):
+           Busy                  another diagnostic, or a Zypper, snapshot or
+                                 backup transaction, is running
+           OnBattery             cpu-stress, memory-stress or disk-bench
+                                 requested without line power
+           InsufficientResources MemAvailable < 2 GiB, or < 10 GiB free for
+                                 disk-bench
+           NotSupported          unknown test id or invalid option -->
+
+    <!-- DiagnosticTest struct: (id, available, reason, estimatedSeconds, requiresAc)
+         reason: stable identifier, empty when available; frontends localize it.
+           "missing-tool:<package>"  the package providing the tool is absent
+           "not-btrfs"               fs-scrub on a root that is not btrfs
+           "not-implemented"         known test this daemon cannot run yet
+         Unknown reasons must be shown as a generic "unavailable". -->
+    <method name="ListTests">
+      <!-- polkit: none (read-only) -->
+      <arg name="tests" type="a(sbsub)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;DiagnosticTest&gt;"/>
+    </method>
+
+    <!-- Starts a job running the given tests in order. options (a{sv}), all
+         optional:
+           "durationSeconds" u  cpu-stress/memory-stress duration (30..600, default 240)
+           "memoryPercent"   u  share of MemAvailable for memory-stress (10..70, default 70)
+           "bootsBack"       u  boots examined by logs (1..20, default 8)
+           "locale"          s  language of messages and findings
+         Unknown keys are ignored. -->
+    <method name="Start">
+      <!-- polkit: org.lyraos.vega.hardware.diagnose -->
+      <arg name="tests" type="as" direction="in"/>
+      <arg name="options" type="a{sv}" direction="in"/>
+      <arg name="jobId" type="u" direction="out"/>
+    </method>
+
+    <!-- Cancels a running job. The job ends with Finished(result="cancelled")
+         and keeps a partial report. Cancelling a finished or unknown job is
+         a no-op. -->
+    <method name="Cancel">
+      <!-- polkit: org.lyraos.vega.hardware.diagnose -->
+      <arg name="jobId" type="u" direction="in"/>
+    </method>
+
+    <!-- The running job, so a frontend opened mid-run can follow and cancel
+         it: (jobId, tests, stage, percent). jobId is 0 when idle; stage is
+         the id of the test in progress. -->
+    <method name="Current">
+      <!-- polkit: none (read-only) -->
+      <arg name="job" type="(uassu)" direction="out"/>
+    </method>
+
+    <!-- JSON report of a job (the most recent one when jobId is 0), schema
+         "schema": 1. Kept in /var/lib/vega/diagnostics/, last 10 jobs. With
+         redact=true, disk serial numbers, MAC addresses, SSIDs and the
+         hostname are removed. -->
+    <method name="Report">
+      <!-- polkit: org.lyraos.vega.logs.read-admin -->
+      <arg name="jobId" type="u" direction="in"/>
+      <arg name="redact" type="b" direction="in"/>
+      <arg name="reportJson" type="s" direction="out"/>
+    </method>
+
+    <!-- Progress of the current stage. -->
+    <signal name="Progress">
+      <arg name="jobId" type="u"/>
+      <arg name="stage" type="s"/>
+      <arg name="percent" type="u"/>
+      <arg name="message" type="s"/>
+    </signal>
+
+    <!-- Live telemetry every 5 s during cpu-stress, memory-stress and
+         disk-bench. Keys: "pkgTempC" i, "maxCoreTempC" i, "avgMHz" u,
+         "throttleEvents" u, "nvmeTempC" i, "load1" d. A missing key means
+         not measured; unknown keys must be ignored. -->
+    <signal name="Sample">
+      <arg name="jobId" type="u"/>
+      <arg name="sample" type="a{sv}"/>
+    </signal>
+
+    <signal name="StageFinished">
+      <arg name="jobId" type="u"/>
+      <arg name="stage" type="s"/>
+      <arg name="verdict" type="s"/>
+      <arg name="summary" type="s"/>
+    </signal>
+
+    <signal name="Finished">
+      <arg name="jobId" type="u"/>
+      <arg name="result" type="s"/>
+      <arg name="message" type="s"/>
+    </signal>
+  </interface>
+</node>
