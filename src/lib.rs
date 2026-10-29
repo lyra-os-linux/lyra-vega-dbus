@@ -2,6 +2,7 @@ mod backup;
 mod bluetooth;
 mod client;
 mod datetime;
+mod diagnostics;
 mod firewall;
 mod hardware;
 mod kernel;
@@ -29,6 +30,12 @@ pub use bluetooth::{
 };
 pub use client::{DbusConnectionError, VegaDbus};
 pub use datetime::{DateTimeClient, DateTimeClientError, DateTimeStatus, ZbusDateTimeClient};
+pub use diagnostics::{
+    DIAGNOSTIC_TEST_IDS, DIAGNOSTICS_CAPABILITY, DiagnosticFinished, DiagnosticJob,
+    DiagnosticOptions, DiagnosticProgress, DiagnosticSample, DiagnosticStageFinished,
+    DiagnosticTest, DiagnosticVerdict, DiagnosticsClient, DiagnosticsClientError, DiagnosticsEvent,
+    DiagnosticsEventStream, ZbusDiagnosticsClient,
+};
 pub use firewall::{
     FirewallClient, FirewallClientError, FirewallPort, FirewallService, FirewallStatus,
     ZbusFirewallClient,

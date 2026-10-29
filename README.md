@@ -51,3 +51,11 @@ numeric Snapper field. Availability is a preflight, not proof of a stored backup
 
 See [the daemon contract](https://github.com/lyra-os-linux/vegad/blob/main/docs/nvidia.md)
 for state semantics and qualified-version limits.
+
+## Diagnostics capability
+
+`diagnostics-v1` announces `org.lyraos.Vega1.Diagnostics`: health tests run by
+vegad (packages, disk health, btrfs scrub, CPU and memory stress, disk
+benchmark, logs and platform state), with progress, live telemetry, safeguards
+and a versioned JSON report. See [the diagnostics contract](docs/diagnostics.md)
+for the job lifecycle, verdicts, errors, Polkit actions and report schema.
