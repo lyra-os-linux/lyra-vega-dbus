@@ -9,7 +9,7 @@ Anunciada pela capability `space-cleanup-v1`. Requisitos e design:
 | --- | --- | --- |
 | `coredumps` | arquivos em `/var/lib/systemd/coredump` | apaga os arquivos |
 | `journal` | arquivos arquivados do journal acima de 500 MB que terminam antes do boot anterior | `journalctl --vacuum-size`, com o alvo calculado para não chegar no boot anterior |
-| `package-cache` | `/var/cache/zypp/packages` | `zypper clean --all` |
+| `package-cache` | `/var/cache/zypp/packages` | `zypper clean`, que apaga só os pacotes baixados e mantém os metadados |
 | `flatpak-unused` | os runtimes que `flatpak uninstall --unused --system` listaria | esse mesmo comando, sem perguntas |
 | `old-kernels` | `zypper purge-kernels --dry-run`, pela regra `multiversion.kernels` | `zypper purge-kernels` entre dois snapshots; recusa se a lista tiver o kernel em uso ou o mais novo |
 | `snapshots` | snapshots `number` e `timeline` acima dos limites do Snapper (pelo menos esse número; tamanho desconhecido sem quotas do btrfs) | `snapper cleanup number` e `snapper cleanup timeline` |
@@ -27,7 +27,7 @@ uma lista de tokens separados por `;`, e os desconhecidos são ignorados:
 | `count=<n>` | arquivos, runtimes, kernels ou snapshots |
 | `size=unknown` | o tamanho não pode ser medido antes |
 | `minimum` | `count` é um mínimo |
-| `reason=<id>` | por que `canClean` é falso: `nothing`, `busy`, `missing-tool:<pacote>`, `not-configured` |
+| `reason=<id>` | por que `canClean` é falso: `nothing`, `busy`, `missing-tool:<pacote>`, `not-configured`, `protected` (o plano tiraria o kernel em uso ou o mais novo), `failed` (a medição falhou) |
 | `item=<texto>` | um item (versão do kernel, ref do runtime), repetido, no máximo 20 |
 
 Polkit: `org.lyraos.vega.storage.read-admin`, com `allow_active` `yes`. Abrir a

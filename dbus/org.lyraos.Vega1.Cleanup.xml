@@ -39,6 +39,9 @@
                                   busy                   another operation runs
                                   missing-tool:<package> tool not installed
                                   not-configured         e.g. no snapper config
+                                  protected              the plan would remove the
+                                                         running or the newest kernel
+                                  failed                 the measurement failed
            "item=<text>"        one entry (kernel version, runtime ref),
                                 repeated; at most 20
          Scan only measures; it never deletes anything. -->

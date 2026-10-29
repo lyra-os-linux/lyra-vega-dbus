@@ -51,7 +51,7 @@ pub struct CleanupDetail {
     /// `count` is a lower bound (`minimum`).
     pub minimum: bool,
     /// Why `can_clean` is false (`nothing`, `busy`, `missing-tool:<package>`,
-    /// `not-configured`); frontends localize it.
+    /// `not-configured`, `protected`, `failed`); frontends localize it.
     pub reason: Option<String>,
     /// Entries such as kernel versions or runtime refs, at most 20.
     pub items: Vec<String>,
@@ -417,6 +417,8 @@ mod tests {
             "item=",
             "missing-tool:",
             "not-configured",
+            "protected",
+            "failed",
             "Busy",
             "NotSupported",
             "org.lyraos.vega.storage.read-admin",
