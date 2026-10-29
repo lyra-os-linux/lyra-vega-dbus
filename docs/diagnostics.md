@@ -128,7 +128,9 @@ mais recentes.
   conhecido (bugs de firmware ACPI, avisos comuns de boot e afins).
 - `code` é estável. Os frontends traduzem e agrupam por ele, nunca pelo `text`.
 - `metrics` varia por teste. As chaves ausentes não foram medidas.
-- Com `redact = true`, saem os números de série, endereços MAC, SSIDs e o
-  hostname.
+- Com `redact = true`, saem os números de série, endereços MAC, SSIDs, o
+  hostname e o nome das pastas em `/home`.
+- Enquanto o job roda, `Report` devolve o relatório parcial, sem `result` nem
+  `finished`. O relatório é gravado a cada etapa.
 - Um campo novo não muda o `schema`. Remover ou mudar o significado de um campo
   exige `schema: 2`.
