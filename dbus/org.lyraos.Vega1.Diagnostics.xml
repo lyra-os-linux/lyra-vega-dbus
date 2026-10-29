@@ -78,6 +78,26 @@
       <arg name="reportJson" type="s" direction="out"/>
     </method>
 
+    <!-- Applies safe fixes proposed by a report (capability "diagnostics-v2").
+         remedies are ids from the "remedy" field of that job's findings:
+           reinstall-packages   reinstall the packages owning changed or
+                                missing files (zypper install -f)
+           verify-dependencies  install what zypper verify finds missing
+           restart-units        reset-failed and restart the failed units
+           enable-ntp           turn on network time synchronization
+         The details (which packages, which units) come from the report vegad
+         stored, never from the caller. A snapshot is taken first when the
+         system supports it; afterwards the affected tests run again. The
+         repair is a job like Start: same signals, stage ids
+         "repair:<remedy>" followed by the re-run tests, and its own report.
+         Errors: Busy, NotSupported (unknown job or remedy not in its report).
+         polkit: org.lyraos.vega.hardware.repair -->
+    <method name="Repair">
+      <arg name="jobId" type="u" direction="in"/>
+      <arg name="remedies" type="as" direction="in"/>
+      <arg name="repairJobId" type="u" direction="out"/>
+    </method>
+
     <!-- Progress of the current stage. -->
     <signal name="Progress">
       <arg name="jobId" type="u"/>

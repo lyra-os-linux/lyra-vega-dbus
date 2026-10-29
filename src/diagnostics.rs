@@ -8,6 +8,17 @@ use zbus::zvariant::{OwnedValue, Value};
 /// `org.lyraos.Vega1.Diagnostics`.
 pub const DIAGNOSTICS_CAPABILITY: &str = "diagnostics-v1";
 
+/// Capability of daemons that also implement `Repair`.
+pub const DIAGNOSTICS_REPAIR_CAPABILITY: &str = "diagnostics-v2";
+
+/// Remedy ids `Repair` accepts, as they appear in a report's findings.
+pub const DIAGNOSTIC_REMEDIES: [&str; 4] = [
+    "reinstall-packages",
+    "verify-dependencies",
+    "restart-units",
+    "enable-ntp",
+];
+
 /// Test ids run by vegad, in the order the daemon recommends running them.
 /// The GPU test runs in the frontend and is not part of the contract.
 pub const DIAGNOSTIC_TEST_IDS: [&str; 8] = [
@@ -308,6 +319,9 @@ pub trait DiagnosticsClient: Send + Sync {
     async fn current(&self) -> Result<DiagnosticJob, DiagnosticsClientError>;
     /// JSON report (schema 1); `job_id` 0 returns the most recent job.
     async fn report(&self, job_id: u32, redact: bool) -> Result<String, DiagnosticsClientError>;
+    /// Applies the given remedies of `job_id`'s report; returns the repair job.
+    async fn repair(&self, job_id: u32, remedies: &[String])
+    -> Result<u32, DiagnosticsClientError>;
 }
 
 #[zbus::proxy(
@@ -322,6 +336,7 @@ trait Diagnostics {
     async fn cancel(&self, job_id: u32) -> zbus::Result<()>;
     async fn current(&self) -> zbus::Result<DiagnosticJobRow>;
     async fn report(&self, job_id: u32, redact: bool) -> zbus::Result<String>;
+    async fn repair(&self, job_id: u32, remedies: &[String]) -> zbus::Result<u32>;
 
     #[zbus(signal)]
     async fn progress(
@@ -481,6 +496,14 @@ impl DiagnosticsClient for ZbusDiagnosticsClient {
     async fn report(&self, job_id: u32, redact: bool) -> Result<String, DiagnosticsClientError> {
         proxy_call!(self, report(job_id, redact))
     }
+
+    async fn repair(
+        &self,
+        job_id: u32,
+        remedies: &[String],
+    ) -> Result<u32, DiagnosticsClientError> {
+        proxy_call!(self, repair(job_id, remedies))
+    }
 }
 
 #[cfg(test)]
@@ -545,6 +568,10 @@ mod tests {
                 args(&[("in", "u"), ("in", "b"), ("out", "s")]),
             ),
             (
+                "Repair".into(),
+                args(&[("in", "u"), ("in", "as"), ("out", "u")]),
+            ),
+            (
                 "Start".into(),
                 args(&[("in", "as"), ("in", "a{sv}"), ("out", "u")]),
             ),
@@ -581,6 +608,10 @@ mod tests {
             assert!(DIAGNOSTICS_XML.contains(error), "{error} ausente do XML");
         }
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_CAPABILITY));
+        assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_REPAIR_CAPABILITY));
+        for remedy in DIAGNOSTIC_REMEDIES {
+            assert!(DIAGNOSTICS_XML.contains(remedy), "{remedy} ausente do XML");
+        }
     }
 
     #[test]
