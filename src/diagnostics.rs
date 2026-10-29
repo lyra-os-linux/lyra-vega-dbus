@@ -26,7 +26,8 @@ pub const DIAGNOSTIC_TEST_IDS: [&str; 8] = [
 pub struct DiagnosticTest {
     pub id: String,
     pub available: bool,
-    /// Localized reason when `available` is false; empty otherwise.
+    /// Stable reason when `available` is false (`missing-tool:<package>`,
+    /// `not-btrfs`, `not-implemented`); empty otherwise. Frontends localize it.
     pub reason: String,
     pub estimated_seconds: u32,
     pub requires_ac: bool,
@@ -639,7 +640,7 @@ mod tests {
         let test = DiagnosticTest::from((
             "disk-bench".into(),
             false,
-            "fio não está instalado".into(),
+            "missing-tool:fio".into(),
             120,
             true,
         ));

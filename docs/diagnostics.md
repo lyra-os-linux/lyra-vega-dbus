@@ -20,8 +20,17 @@ consomem tudo pelo mesmo contrato. A especificação completa está em
 | `platform` | temperaturas, bateria, firmware, NTP, Secure Boot, kernel *tainted*, SELinux | não |
 
 O teste de GPU roda no frontend, na sessão do usuário, e não passa pelo
-contrato. Um teste sem a ferramenta instalada aparece em `ListTests` com
-`available = false` e um `reason` traduzido.
+contrato. Um teste que não pode rodar aparece em `ListTests` com
+`available = false` e um `reason` estável, que o frontend traduz:
+
+| `reason` | Significado |
+| --- | --- |
+| `missing-tool:<pacote>` | o pacote da ferramenta não está instalado (ex.: `missing-tool:smartmontools`) |
+| `not-btrfs` | `fs-scrub` com a raiz fora do btrfs |
+| `not-implemented` | o daemon conhece o teste, mas ainda não o executa |
+
+Um `reason` desconhecido deve aparecer como "indisponível". Pedir um teste
+indisponível em `Start` não é erro: a etapa termina com `unavailable`.
 
 ## Ciclo de um job
 

@@ -26,8 +26,11 @@
            NotSupported          unknown test id or invalid option -->
 
     <!-- DiagnosticTest struct: (id, available, reason, estimatedSeconds, requiresAc)
-         reason: localized explanation when available is false
-         (e.g. "smartmontools is not installed"); empty otherwise. -->
+         reason: stable identifier, empty when available; frontends localize it.
+           "missing-tool:<package>"  the package providing the tool is absent
+           "not-btrfs"               fs-scrub on a root that is not btrfs
+           "not-implemented"         known test this daemon cannot run yet
+         Unknown reasons must be shown as a generic "unavailable". -->
     <method name="ListTests">
       <!-- polkit: none (read-only) -->
       <arg name="tests" type="a(sbsub)" direction="out"/>
