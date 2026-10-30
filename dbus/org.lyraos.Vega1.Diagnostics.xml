@@ -13,7 +13,10 @@
                    encryption, accounts without password, sudo policy) |
                    network ("diagnostics-v4": link, address, gateway, DNS
                    and internet, in order; the first failing step is the
-                   answer and the "steps" metric lists them all)
+                   answer and the "steps" metric lists them all) |
+                   boot ("diagnostics-v5": phases of the last boot, the
+                   slowest units that started before the graphical login,
+                   the wait for the network and missing disks)
          The GPU test runs in the frontend (user session) and never reaches
          vegad. Unknown ids are rejected with NotSupported.
 
@@ -105,6 +108,12 @@
            renew-dhcp     reapply the connection, which renews DHCP
            temporary-dns  public DNS (1.1.1.1, 9.9.9.9) in the running
                           activation only; the saved profile is unchanged
+         with "diagnostics-v5" (findings of the boot test), checked again
+         when applied:
+           disable-wait-online  disable NetworkManager-wait-online when no
+                                other unit wants network-online.target
+           disable-service      disable services the image preset does not
+                                enable; the image's own are never touched
          The details (which packages, which units) come from the report vegad
          stored, never from the caller. A snapshot is taken first when the
          system supports it; afterwards the affected tests run again. The

@@ -158,6 +158,8 @@ mais recentes.
 | `apply-security-patches` | `security.patches-pending` | `zypper patch --category security`, dentro do snapshot (`diagnostics-v3`) |
 | `reconnect` | `network.no-link` | liga o Wi-Fi se preciso e conecta o dispositivo (`diagnostics-v4`, sem snapshot) |
 | `renew-dhcp` | `network.no-address` | reaplica a conexão, o que renova o DHCP (`diagnostics-v4`, sem snapshot) |
+| `disable-wait-online` | `boot.wait-online` | desabilita o `NetworkManager-wait-online` se nada mais quer o `network-online.target` (`diagnostics-v5`) |
+| `disable-service` | `boot.slow-service` | desabilita serviços que o preset da imagem não habilita (`diagnostics-v5`) |
 | `temporary-dns` | `network.dns-failed` | DNS público (1.1.1.1 e 9.9.9.9) só na ativação atual; o perfil salvo não muda (`diagnostics-v4`, sem snapshot) |
 
 Nada que mexa em disco, partição ou sistema de arquivos tem conserto
@@ -209,3 +211,13 @@ achado `network.captive-portal`.
 remédios dele) usam `org.lyraos.vega.network.diagnose`, que a sessão local
 ativa tem sem senha. Os consertos continuam em
 `org.lyraos.vega.hardware.repair`.
+
+## Teste de boot (`diagnostics-v5`)
+
+O teste `boot` lê o último boot: a métrica `phases` traz os segundos de cada
+fase do `systemd-analyze time` (`firmware`, `loader`, `kernel`, `initrd`,
+`userspace`; as ausentes não existem nesta máquina), `totalSeconds`,
+`graphicalSeconds` (até o login, contado no userspace) e `slowest`, até cinco
+`{unit, seconds}` que começaram antes do login gráfico. Achados:
+`boot.slow`, `boot.wait-online`, `boot.missing-device` e `boot.slow-service`.
+Os remédios conferem tudo de novo ao rodar e dizem no resumo como desfazer.
