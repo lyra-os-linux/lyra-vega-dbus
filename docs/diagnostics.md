@@ -221,3 +221,25 @@ fase do `systemd-analyze time` (`firmware`, `loader`, `kernel`, `initrd`,
 `{unit, seconds}` que começaram antes do login gráfico. Achados:
 `boot.slow`, `boot.wait-online`, `boot.missing-device` e `boot.slow-service`.
 Os remédios conferem tudo de novo ao rodar e dizem no resumo como desfazer.
+
+## Verificação periódica (`diagnostics-periodic-v1`)
+
+O `vegad-health-check.timer` (semanal por padrão, ou diário) roda os testes
+leves `disk-health`, `logs`, `platform` e `security` com prioridade baixa, pelo
+`Start` com a opção `periodic` (só aceita do root). Ele é pulado em silêncio
+com a bateria abaixo de 30% sem carregador ou enquanto outra operação roda.
+
+No fim, o vegad compara com a execução periódica anterior
+(`/var/lib/vega/diagnostics/periodic.json`). Só conta como novidade:
+
+- um achado de atenção ou falha que não existia (código e argumentos do
+  conserto, para que uma porta exposta nova conte mesmo que outra já existisse);
+- o desgaste do SSD (`percentUsed`) subindo mais de 5 pontos em 30 dias;
+- `security.patches-pending` presente há mais de 7 dias (avisado uma vez).
+
+Com novidades, sai o sinal `Novelties(jobId, count)`. `LastPeriodic()` devolve
+a última execução (job, horário, novidades, as etapas e os textos das
+novidades), sem senha, para o notificador da sessão avisar o que aconteceu
+enquanto o usuário estava fora. `GetPeriodic()` e `SetPeriodic(enabled,
+frequency)` ligam, desligam e escolhem `weekly` ou `daily`; mudar pede
+`org.lyraos.vega.hardware.diagnose`.

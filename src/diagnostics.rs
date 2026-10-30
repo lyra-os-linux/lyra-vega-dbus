@@ -41,6 +41,22 @@ pub const DIAGNOSTICS_NETWORK_CAPABILITY: &str = "diagnostics-v4";
 /// (`disable-wait-online`, `disable-service`).
 pub const DIAGNOSTICS_BOOT_CAPABILITY: &str = "diagnostics-v5";
 
+/// Capability of daemons with the weekly check: `GetPeriodic`,
+/// `SetPeriodic`, `LastPeriodic` and the `Novelties` signal.
+pub const DIAGNOSTICS_PERIODIC_CAPABILITY: &str = "diagnostics-periodic-v1";
+
+/// Result of the last periodic run (`LastPeriodic`); `job_id` 0 means none.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PeriodicRun {
+    pub job_id: u32,
+    /// Unix time the run finished.
+    pub finished: i64,
+    pub novelties: u32,
+    /// `(id, verdict, summary)` of each stage.
+    pub stages: Vec<(String, String, String)>,
+    pub novelty_texts: Vec<String>,
+}
+
 /// Capability of daemons with `Remedies`, `RepairFindings` and
 /// `MarkLogsSeen`: a fix per test or per finding, and "seen" for the logs.
 pub const DIAGNOSTICS_ACTIONS_CAPABILITY: &str = "diagnostics-actions-v1";
@@ -268,6 +284,11 @@ pub enum DiagnosticsEvent {
     Sample(DiagnosticSample),
     StageFinished(DiagnosticStageFinished),
     Finished(DiagnosticFinished),
+    /// A periodic run found `count` new problems.
+    Novelties {
+        job_id: u32,
+        count: u32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -384,6 +405,14 @@ pub trait DiagnosticsClient: Send + Sync {
     ) -> Result<u32, DiagnosticsClientError>;
     /// Later logs tests ignore what happened before `job_id`'s logs stage.
     async fn mark_logs_seen(&self, job_id: u32) -> Result<(), DiagnosticsClientError>;
+    /// Whether the weekly check is on, and its frequency.
+    async fn get_periodic(&self) -> Result<(bool, String), DiagnosticsClientError>;
+    async fn set_periodic(
+        &self,
+        enabled: bool,
+        frequency: &str,
+    ) -> Result<(), DiagnosticsClientError>;
+    async fn last_periodic(&self) -> Result<PeriodicRun, DiagnosticsClientError>;
 }
 
 #[zbus::proxy(
@@ -402,6 +431,15 @@ trait Diagnostics {
     async fn remedies(&self, job_id: u32) -> zbus::Result<Vec<DiagnosticRemedyRow>>;
     async fn repair_findings(&self, job_id: u32, findings: &[(String, u32)]) -> zbus::Result<u32>;
     async fn mark_logs_seen(&self, job_id: u32) -> zbus::Result<()>;
+    async fn get_periodic(&self) -> zbus::Result<(bool, String)>;
+    async fn set_periodic(&self, enabled: bool, frequency: &str) -> zbus::Result<()>;
+    #[allow(clippy::type_complexity)]
+    async fn last_periodic(
+        &self,
+    ) -> zbus::Result<(u32, i64, u32, Vec<(String, String, String)>, Vec<String>)>;
+
+    #[zbus(signal)]
+    async fn novelties(&self, job_id: u32, count: u32) -> zbus::Result<()>;
 
     #[zbus(signal)]
     async fn progress(
@@ -470,6 +508,10 @@ impl ZbusDiagnosticsClient {
                 .receive_finished()
                 .await
                 .map_err(DiagnosticsClientError::unavailable)?,
+            novelties: proxy
+                .receive_novelties()
+                .await
+                .map_err(DiagnosticsClientError::unavailable)?,
         })
     }
 }
@@ -479,6 +521,7 @@ pub struct DiagnosticsEventStream {
     sample: SampleStream,
     stage_finished: StageFinishedStream,
     finished: FinishedStream,
+    novelties: NoveltiesStream,
 }
 
 impl DiagnosticsEventStream {
@@ -520,6 +563,11 @@ impl DiagnosticsEventStream {
                     result: DiagnosticVerdict::parse(args.result),
                     message: args.message.to_owned(),
                 }))
+            },
+            signal = self.novelties.next().fuse() => {
+                let signal = signal.ok_or_else(DiagnosticsClientError::stream_ended)?;
+                let args = signal.args().map_err(DiagnosticsClientError::unavailable)?;
+                Ok(DiagnosticsEvent::Novelties { job_id: args.job_id, count: args.count })
             },
         }
     }
@@ -585,6 +633,28 @@ impl DiagnosticsClient for ZbusDiagnosticsClient {
     async fn mark_logs_seen(&self, job_id: u32) -> Result<(), DiagnosticsClientError> {
         proxy_call!(self, mark_logs_seen(job_id))
     }
+
+    async fn get_periodic(&self) -> Result<(bool, String), DiagnosticsClientError> {
+        proxy_call!(self, get_periodic())
+    }
+
+    async fn set_periodic(
+        &self,
+        enabled: bool,
+        frequency: &str,
+    ) -> Result<(), DiagnosticsClientError> {
+        proxy_call!(self, set_periodic(enabled, frequency))
+    }
+
+    async fn last_periodic(&self) -> Result<PeriodicRun, DiagnosticsClientError> {
+        proxy_call!(self, last_periodic()).map(|row| PeriodicRun {
+            job_id: row.0,
+            finished: row.1,
+            novelties: row.2,
+            stages: row.3,
+            novelty_texts: row.4,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -643,6 +713,17 @@ mod tests {
         let expected = BTreeMap::from([
             ("Cancel".into(), args(&[("in", "u")])),
             ("Current".into(), args(&[("out", "(uassu)")])),
+            ("GetPeriodic".into(), args(&[("out", "b"), ("out", "s")])),
+            (
+                "LastPeriodic".into(),
+                args(&[
+                    ("out", "u"),
+                    ("out", "x"),
+                    ("out", "u"),
+                    ("out", "a(sss)"),
+                    ("out", "as"),
+                ]),
+            ),
             ("ListTests".into(), args(&[("out", "a(sbsub)")])),
             ("MarkLogsSeen".into(), args(&[("in", "u")])),
             ("Remedies".into(), args(&[("in", "u"), ("out", "a(sus)")])),
@@ -654,6 +735,7 @@ mod tests {
                 "Repair".into(),
                 args(&[("in", "u"), ("in", "as"), ("out", "u")]),
             ),
+            ("SetPeriodic".into(), args(&[("in", "b"), ("in", "s")])),
             (
                 "RepairFindings".into(),
                 args(&[("in", "u"), ("in", "a(su)"), ("out", "u")]),
@@ -673,6 +755,7 @@ mod tests {
                 "Finished".into(),
                 args(&[("out", "u"), ("out", "s"), ("out", "s")]),
             ),
+            ("Novelties".into(), args(&[("out", "u"), ("out", "u")])),
             (
                 "Progress".into(),
                 args(&[("out", "u"), ("out", "s"), ("out", "u"), ("out", "s")]),
@@ -700,6 +783,8 @@ mod tests {
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_ACTIONS_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_NETWORK_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_BOOT_CAPABILITY));
+        assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_PERIODIC_CAPABILITY));
+        assert!(DIAGNOSTICS_XML.contains("org.lyraos.vega.hardware.read-admin"));
         assert!(DIAGNOSTICS_XML.contains("org.lyraos.vega.network.diagnose"));
         for remedy in DIAGNOSTIC_REMEDIES.iter().copied() {
             assert!(DIAGNOSTICS_XML.contains(remedy), "{remedy} ausente do XML");

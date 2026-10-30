@@ -52,6 +52,11 @@
            "memoryPercent"   u  share of MemAvailable for memory-stress (10..70, default 70)
            "bootsBack"       u  boots examined by logs (1..20, default 8)
            "locale"          s  language of messages and findings
+           "periodic"        b  the weekly check ("diagnostics-periodic-v1");
+                                only accepted from root (the timer), runs at
+                                low priority, is skipped quietly (jobId 0) on
+                                a battery under 30% or while busy, and ends
+                                with Novelties
          Unknown keys are ignored. -->
     <method name="Start">
       <!-- polkit: org.lyraos.vega.hardware.diagnose; the network test alone
@@ -161,6 +166,45 @@
     <method name="MarkLogsSeen">
       <arg name="jobId" type="u" direction="in"/>
     </method>
+
+    <!-- The weekly check (capability "diagnostics-periodic-v1"): the light,
+         read-only tests (disk-health, logs, platform, security) run by
+         vegad-health-check.timer, compared with the previous run. Only what is
+         new counts: a new attention or fail finding, SMART wear up more than 5
+         points in 30 days, security patches pending for over 7 days. -->
+
+    <!-- Whether the timer is on and how often: "weekly" or "daily".
+         polkit: none (read-only) -->
+    <method name="GetPeriodic">
+      <arg name="enabled" type="b" direction="out"/>
+      <arg name="frequency" type="s" direction="out"/>
+    </method>
+
+    <!-- Turns the check on or off for the whole system. NotSupported for an
+         unknown frequency. polkit: org.lyraos.vega.hardware.diagnose -->
+    <method name="SetPeriodic">
+      <arg name="enabled" type="b" direction="in"/>
+      <arg name="frequency" type="s" direction="in"/>
+    </method>
+
+    <!-- The last periodic run: (jobId, finished unix time, novelties, stages,
+         noveltyTexts). stages are (id, verdict, summary); noveltyTexts are the
+         localized texts of what was new. jobId 0 means none ran yet.
+         polkit: org.lyraos.vega.hardware.read-admin (allow_active yes, no
+         prompt) -->
+    <method name="LastPeriodic">
+      <arg name="jobId" type="u" direction="out"/>
+      <arg name="finished" type="x" direction="out"/>
+      <arg name="novelties" type="u" direction="out"/>
+      <arg name="stages" type="a(sss)" direction="out"/>
+      <arg name="noveltyTexts" type="as" direction="out"/>
+    </method>
+
+    <!-- A periodic run found something new; count is at least 1. -->
+    <signal name="Novelties">
+      <arg name="jobId" type="u"/>
+      <arg name="count" type="u"/>
+    </signal>
 
     <!-- Progress of the current stage. -->
     <signal name="Progress">

@@ -39,10 +39,11 @@ pub use datetime::{DateTimeClient, DateTimeClientError, DateTimeStatus, ZbusDate
 pub use diagnostics::{
     DIAGNOSTIC_REMEDIES, DIAGNOSTIC_TEST_IDS, DIAGNOSTICS_ACTIONS_CAPABILITY,
     DIAGNOSTICS_BOOT_CAPABILITY, DIAGNOSTICS_CAPABILITY, DIAGNOSTICS_NETWORK_CAPABILITY,
-    DIAGNOSTICS_REPAIR_CAPABILITY, DIAGNOSTICS_SECURITY_CAPABILITY, DiagnosticFinished,
-    DiagnosticJob, DiagnosticOptions, DiagnosticProgress, DiagnosticRemedy, DiagnosticSample,
-    DiagnosticStageFinished, DiagnosticTest, DiagnosticVerdict, DiagnosticsClient,
-    DiagnosticsClientError, DiagnosticsEvent, DiagnosticsEventStream, ZbusDiagnosticsClient,
+    DIAGNOSTICS_PERIODIC_CAPABILITY, DIAGNOSTICS_REPAIR_CAPABILITY,
+    DIAGNOSTICS_SECURITY_CAPABILITY, DiagnosticFinished, DiagnosticJob, DiagnosticOptions,
+    DiagnosticProgress, DiagnosticRemedy, DiagnosticSample, DiagnosticStageFinished,
+    DiagnosticTest, DiagnosticVerdict, DiagnosticsClient, DiagnosticsClientError, DiagnosticsEvent,
+    DiagnosticsEventStream, PeriodicRun, ZbusDiagnosticsClient,
 };
 pub use firewall::{
     FirewallClient, FirewallClientError, FirewallPort, FirewallService, FirewallStatus,
