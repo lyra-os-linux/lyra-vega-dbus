@@ -11,8 +11,9 @@ pub const DIAGNOSTICS_CAPABILITY: &str = "diagnostics-v1";
 /// Capability of daemons that also implement `Repair`.
 pub const DIAGNOSTICS_REPAIR_CAPABILITY: &str = "diagnostics-v2";
 
-/// Remedy ids `Repair` accepts, as they appear in a report's findings. The
-/// last three need `diagnostics-v3`.
+/// Remedy ids `Repair` accepts, as they appear in a report's findings.
+/// `enable-firewall`, `close-port` and `apply-security-patches` need
+/// `diagnostics-v3`; the network ones need `diagnostics-v4`.
 pub const DIAGNOSTIC_REMEDIES: &[&str] = &[
     "reinstall-packages",
     "verify-dependencies",
@@ -21,10 +22,17 @@ pub const DIAGNOSTIC_REMEDIES: &[&str] = &[
     "enable-firewall",
     "close-port",
     "apply-security-patches",
+    "reconnect",
+    "renew-dhcp",
+    "temporary-dns",
 ];
 
 /// Capability of daemons with the `security` test and its remedies.
 pub const DIAGNOSTICS_SECURITY_CAPABILITY: &str = "diagnostics-v3";
+
+/// Capability of daemons with the `network` test and its remedies
+/// (`reconnect`, `renew-dhcp`, `temporary-dns`).
+pub const DIAGNOSTICS_NETWORK_CAPABILITY: &str = "diagnostics-v4";
 
 /// Capability of daemons with `Remedies`, `RepairFindings` and
 /// `MarkLogsSeen`: a fix per test or per finding, and "seen" for the logs.
@@ -53,7 +61,7 @@ impl From<DiagnosticRemedyRow> for DiagnosticRemedy {
 
 /// Test ids run by vegad, in the order the daemon recommends running them.
 /// The GPU test runs in the frontend and is not part of the contract.
-/// `security` needs `diagnostics-v3`.
+/// `security` needs `diagnostics-v3`, `network` needs `diagnostics-v4`.
 pub const DIAGNOSTIC_TEST_IDS: &[&str] = &[
     "packages",
     "disk-health",
@@ -64,6 +72,7 @@ pub const DIAGNOSTIC_TEST_IDS: &[&str] = &[
     "logs",
     "platform",
     "security",
+    "network",
 ];
 
 /// A test as reported by `ListTests`.
@@ -680,6 +689,8 @@ mod tests {
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_REPAIR_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_SECURITY_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_ACTIONS_CAPABILITY));
+        assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_NETWORK_CAPABILITY));
+        assert!(DIAGNOSTICS_XML.contains("org.lyraos.vega.network.diagnose"));
         for remedy in DIAGNOSTIC_REMEDIES.iter().copied() {
             assert!(DIAGNOSTICS_XML.contains(remedy), "{remedy} ausente do XML");
         }

@@ -156,6 +156,9 @@ mais recentes.
 | `enable-firewall` | `security.firewall-off` | `systemctl enable --now firewalld` (`diagnostics-v3`) |
 | `close-port` | `security.exposed-port` | tira o serviço ou a porta da zona, permanente e em execução (`diagnostics-v3`) |
 | `apply-security-patches` | `security.patches-pending` | `zypper patch --category security`, dentro do snapshot (`diagnostics-v3`) |
+| `reconnect` | `network.no-link` | liga o Wi-Fi se preciso e conecta o dispositivo (`diagnostics-v4`, sem snapshot) |
+| `renew-dhcp` | `network.no-address` | reaplica a conexão, o que renova o DHCP (`diagnostics-v4`, sem snapshot) |
+| `temporary-dns` | `network.dns-failed` | DNS público (1.1.1.1 e 9.9.9.9) só na ativação atual; o perfil salvo não muda (`diagnostics-v4`, sem snapshot) |
 
 Nada que mexa em disco, partição ou sistema de arquivos tem conserto
 automático: erros de SMART, scrub ou btrfs pedem backup e orientação.
@@ -192,3 +195,17 @@ o sistema).
   frontends; o relatório do `logs` traz a métrica `seenUntil`.
   `NotSupported` se o job não tem a etapa `logs` concluída. Polkit
   `org.lyraos.vega.hardware.diagnose`.
+
+## Teste de rede (`diagnostics-v4`)
+
+O teste `network` verifica, em ordem, enlace, endereço, gateway, DNS e
+internet (a checagem do NetworkManager, que detecta portal cativo). A métrica
+`steps` lista `{id, status, detail}` com `status` igual a `ok`, `fail`, `warn`
+ou `skipped`; os passos depois da primeira falha ficam `skipped`. A métrica
+`portalUrl` traz o endereço de checagem, que o frontend abre no navegador no
+achado `network.captive-portal`.
+
+`Start`, `Cancel` e `Report` de um job que é só o teste `network` (ou os
+remédios dele) usam `org.lyraos.vega.network.diagnose`, que a sessão local
+ativa tem sem senha. Os consertos continuam em
+`org.lyraos.vega.hardware.repair`.
