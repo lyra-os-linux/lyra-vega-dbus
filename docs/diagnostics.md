@@ -172,3 +172,23 @@ desconhecido, ou remédio que não está no relatório dele).
 
 Polkit: `org.lyraos.vega.hardware.repair` (`auth_admin`, sem retenção: altera
 o sistema).
+
+## Ações por achado (`diagnostics-actions-v1`)
+
+- `Remedies(jobId) -> a(sus)`: `(stage, findingIndex, remedy)` de cada achado
+  com remédio do relatório (`jobId` 0 = o mais recente). `findingIndex` é a
+  posição do achado dentro da etapa. Sem textos, dados brutos nem argumentos;
+  leitura pública, sem polkit. Serve para o frontend mostrar **Corrigir** na
+  lista de testes sem abrir o relatório.
+- `RepairFindings(jobId, findings a(su)) -> repairJobId`: como `Repair`, mas
+  só para os achados `(stage, findingIndex)` indicados, cada um com os
+  `remedyArgs` que tem no relatório gravado. Fechar uma porta não fecha as
+  outras. `NotSupported` para job desconhecido, índice fora do intervalo ou
+  achado sem remédio. Polkit `org.lyraos.vega.hardware.repair`.
+- `MarkLogsSeen(jobId)`: o teste `logs` dos jobs seguintes ignora erros do
+  journal, core dumps e serviços com falha anteriores ao fim da etapa `logs`
+  desse job. O corte fica no vegad
+  (`/var/lib/vega/diagnostics/logs-seen.json`) e vale para todos os
+  frontends; o relatório do `logs` traz a métrica `seenUntil`.
+  `NotSupported` se o job não tem a etapa `logs` concluída. Polkit
+  `org.lyraos.vega.hardware.diagnose`.

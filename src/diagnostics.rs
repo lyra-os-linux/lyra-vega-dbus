@@ -26,6 +26,31 @@ pub const DIAGNOSTIC_REMEDIES: &[&str] = &[
 /// Capability of daemons with the `security` test and its remedies.
 pub const DIAGNOSTICS_SECURITY_CAPABILITY: &str = "diagnostics-v3";
 
+/// Capability of daemons with `Remedies`, `RepairFindings` and
+/// `MarkLogsSeen`: a fix per test or per finding, and "seen" for the logs.
+pub const DIAGNOSTICS_ACTIONS_CAPABILITY: &str = "diagnostics-actions-v1";
+
+/// A finding with a remedy, as `Remedies` reports it: `finding_index` is
+/// the position of the finding inside its stage.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiagnosticRemedy {
+    pub stage: String,
+    pub finding_index: u32,
+    pub remedy: String,
+}
+
+type DiagnosticRemedyRow = (String, u32, String);
+
+impl From<DiagnosticRemedyRow> for DiagnosticRemedy {
+    fn from(row: DiagnosticRemedyRow) -> Self {
+        Self {
+            stage: row.0,
+            finding_index: row.1,
+            remedy: row.2,
+        }
+    }
+}
+
 /// Test ids run by vegad, in the order the daemon recommends running them.
 /// The GPU test runs in the frontend and is not part of the contract.
 /// `security` needs `diagnostics-v3`.
@@ -331,6 +356,16 @@ pub trait DiagnosticsClient: Send + Sync {
     /// Applies the given remedies of `job_id`'s report; returns the repair job.
     async fn repair(&self, job_id: u32, remedies: &[String])
     -> Result<u32, DiagnosticsClientError>;
+    /// Findings with a remedy in `job_id`'s report (0 = most recent).
+    async fn remedies(&self, job_id: u32) -> Result<Vec<DiagnosticRemedy>, DiagnosticsClientError>;
+    /// Fixes only the given `(stage, finding_index)` findings.
+    async fn repair_findings(
+        &self,
+        job_id: u32,
+        findings: &[(String, u32)],
+    ) -> Result<u32, DiagnosticsClientError>;
+    /// Later logs tests ignore what happened before `job_id`'s logs stage.
+    async fn mark_logs_seen(&self, job_id: u32) -> Result<(), DiagnosticsClientError>;
 }
 
 #[zbus::proxy(
@@ -346,6 +381,9 @@ trait Diagnostics {
     async fn current(&self) -> zbus::Result<DiagnosticJobRow>;
     async fn report(&self, job_id: u32, redact: bool) -> zbus::Result<String>;
     async fn repair(&self, job_id: u32, remedies: &[String]) -> zbus::Result<u32>;
+    async fn remedies(&self, job_id: u32) -> zbus::Result<Vec<DiagnosticRemedyRow>>;
+    async fn repair_findings(&self, job_id: u32, findings: &[(String, u32)]) -> zbus::Result<u32>;
+    async fn mark_logs_seen(&self, job_id: u32) -> zbus::Result<()>;
 
     #[zbus(signal)]
     async fn progress(
@@ -513,6 +551,22 @@ impl DiagnosticsClient for ZbusDiagnosticsClient {
     ) -> Result<u32, DiagnosticsClientError> {
         proxy_call!(self, repair(job_id, remedies))
     }
+
+    async fn remedies(&self, job_id: u32) -> Result<Vec<DiagnosticRemedy>, DiagnosticsClientError> {
+        proxy_call!(self, remedies(job_id)).map(|rows| rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn repair_findings(
+        &self,
+        job_id: u32,
+        findings: &[(String, u32)],
+    ) -> Result<u32, DiagnosticsClientError> {
+        proxy_call!(self, repair_findings(job_id, findings))
+    }
+
+    async fn mark_logs_seen(&self, job_id: u32) -> Result<(), DiagnosticsClientError> {
+        proxy_call!(self, mark_logs_seen(job_id))
+    }
 }
 
 #[cfg(test)]
@@ -572,6 +626,8 @@ mod tests {
             ("Cancel".into(), args(&[("in", "u")])),
             ("Current".into(), args(&[("out", "(uassu)")])),
             ("ListTests".into(), args(&[("out", "a(sbsub)")])),
+            ("MarkLogsSeen".into(), args(&[("in", "u")])),
+            ("Remedies".into(), args(&[("in", "u"), ("out", "a(sus)")])),
             (
                 "Report".into(),
                 args(&[("in", "u"), ("in", "b"), ("out", "s")]),
@@ -579,6 +635,10 @@ mod tests {
             (
                 "Repair".into(),
                 args(&[("in", "u"), ("in", "as"), ("out", "u")]),
+            ),
+            (
+                "RepairFindings".into(),
+                args(&[("in", "u"), ("in", "a(su)"), ("out", "u")]),
             ),
             (
                 "Start".into(),
@@ -619,6 +679,7 @@ mod tests {
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_REPAIR_CAPABILITY));
         assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_SECURITY_CAPABILITY));
+        assert!(DIAGNOSTICS_XML.contains(DIAGNOSTICS_ACTIONS_CAPABILITY));
         for remedy in DIAGNOSTIC_REMEDIES.iter().copied() {
             assert!(DIAGNOSTICS_XML.contains(remedy), "{remedy} ausente do XML");
         }
@@ -687,6 +748,11 @@ mod tests {
         ));
         assert!(!test.available && test.requires_ac);
         assert_eq!(test.estimated_seconds, 120);
+
+        let remedy = DiagnosticRemedy::from(("security".into(), 2, "close-port".into()));
+        assert_eq!(remedy.stage, "security");
+        assert_eq!(remedy.finding_index, 2);
+        assert_eq!(remedy.remedy, "close-port");
 
         let idle = DiagnosticJob::from((0, vec![], String::new(), 0));
         assert!(!idle.is_running());

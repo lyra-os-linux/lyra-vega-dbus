@@ -106,6 +106,41 @@
       <arg name="repairJobId" type="u" direction="out"/>
     </method>
 
+    <!-- Fixes that a report offers, so a frontend can show a fix button per
+         test without reading the report (capability "diagnostics-actions-v1"):
+         one (stage, findingIndex, remedy) per finding with a remedy, where
+         findingIndex is the position of the finding inside its stage. Ids
+         and indexes only: no text, raw data or remedy arguments. jobId 0
+         means the most recent job.
+         polkit: none (read-only) -->
+    <method name="Remedies">
+      <arg name="jobId" type="u" direction="in"/>
+      <arg name="remedies" type="a(sus)" direction="out"/>
+    </method>
+
+    <!-- Like Repair, but fixes only the given findings (stage,
+         findingIndex), each with the arguments it has in the stored report:
+         closing one exposed port leaves the others alone. Same job, signals,
+         snapshot, re-run and errors as Repair; NotSupported for an unknown
+         job, an index out of range or a finding without remedy
+         (capability "diagnostics-actions-v1").
+         polkit: org.lyraos.vega.hardware.repair -->
+    <method name="RepairFindings">
+      <arg name="jobId" type="u" direction="in"/>
+      <arg name="findings" type="a(su)" direction="in"/>
+      <arg name="repairJobId" type="u" direction="out"/>
+    </method>
+
+    <!-- "Seen": the logs test of later jobs ignores journal errors, core
+         dumps and failed units older than the moment the logs stage of
+         jobId finished. Stored by vegad, so every frontend sees the same
+         cutoff. NotSupported when jobId has no finished logs stage
+         (capability "diagnostics-actions-v1").
+         polkit: org.lyraos.vega.hardware.diagnose -->
+    <method name="MarkLogsSeen">
+      <arg name="jobId" type="u" direction="in"/>
+    </method>
+
     <!-- Progress of the current stage. -->
     <signal name="Progress">
       <arg name="jobId" type="u"/>
