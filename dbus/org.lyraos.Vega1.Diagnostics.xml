@@ -10,7 +10,13 @@
                    memory-stress | disk-bench | logs | platform |
                    security ("diagnostics-v3": firewall, exposed ports,
                    security patches, SSH, SELinux, Secure Boot, disk
-                   encryption, accounts without password, sudo policy)
+                   encryption, accounts without password, sudo policy) |
+                   network ("diagnostics-v4": link, address, gateway, DNS
+                   and internet, in order; the first failing step is the
+                   answer and the "steps" metric lists them all) |
+                   boot ("diagnostics-v5": phases of the last boot, the
+                   slowest units that started before the graphical login,
+                   the wait for the network and missing disks)
          The GPU test runs in the frontend (user session) and never reaches
          vegad. Unknown ids are rejected with NotSupported.
 
@@ -46,9 +52,17 @@
            "memoryPercent"   u  share of MemAvailable for memory-stress (10..70, default 70)
            "bootsBack"       u  boots examined by logs (1..20, default 8)
            "locale"          s  language of messages and findings
+           "periodic"        b  the weekly check ("diagnostics-periodic-v1");
+                                only accepted from root (the timer), runs at
+                                low priority, is skipped quietly (jobId 0) on
+                                a battery under 30% or while busy, and ends
+                                with Novelties
          Unknown keys are ignored. -->
     <method name="Start">
-      <!-- polkit: org.lyraos.vega.hardware.diagnose -->
+      <!-- polkit: org.lyraos.vega.hardware.diagnose; the network test alone
+           uses org.lyraos.vega.network.diagnose, which the active session
+           has without a password ("diagnostics-v4"), also for Cancel and
+           for the Report of such a job -->
       <arg name="tests" type="as" direction="in"/>
       <arg name="options" type="a{sv}" direction="in"/>
       <arg name="jobId" type="u" direction="out"/>
@@ -93,6 +107,18 @@
            close-port              remove a service or port from a zone,
                                    permanently and at runtime
            apply-security-patches  zypper patch, security category only
+         with "diagnostics-v4" (findings of the network test), on the device
+         named in the report, without a snapshot:
+           reconnect      turn Wi-Fi on if needed and connect the device
+           renew-dhcp     reapply the connection, which renews DHCP
+           temporary-dns  public DNS (1.1.1.1, 9.9.9.9) in the running
+                          activation only; the saved profile is unchanged
+         with "diagnostics-v5" (findings of the boot test), checked again
+         when applied:
+           disable-wait-online  disable NetworkManager-wait-online when no
+                                other unit wants network-online.target
+           disable-service      disable services the image preset does not
+                                enable; the image's own are never touched
          The details (which packages, which units) come from the report vegad
          stored, never from the caller. A snapshot is taken first when the
          system supports it; afterwards the affected tests run again. The
@@ -105,6 +131,80 @@
       <arg name="remedies" type="as" direction="in"/>
       <arg name="repairJobId" type="u" direction="out"/>
     </method>
+
+    <!-- Fixes that a report offers, so a frontend can show a fix button per
+         test without reading the report (capability "diagnostics-actions-v1"):
+         one (stage, findingIndex, remedy) per finding with a remedy, where
+         findingIndex is the position of the finding inside its stage. Ids
+         and indexes only: no text, raw data or remedy arguments. jobId 0
+         means the most recent job.
+         polkit: none (read-only) -->
+    <method name="Remedies">
+      <arg name="jobId" type="u" direction="in"/>
+      <arg name="remedies" type="a(sus)" direction="out"/>
+    </method>
+
+    <!-- Like Repair, but fixes only the given findings (stage,
+         findingIndex), each with the arguments it has in the stored report:
+         closing one exposed port leaves the others alone. Same job, signals,
+         snapshot, re-run and errors as Repair; NotSupported for an unknown
+         job, an index out of range or a finding without remedy
+         (capability "diagnostics-actions-v1").
+         polkit: org.lyraos.vega.hardware.repair -->
+    <method name="RepairFindings">
+      <arg name="jobId" type="u" direction="in"/>
+      <arg name="findings" type="a(su)" direction="in"/>
+      <arg name="repairJobId" type="u" direction="out"/>
+    </method>
+
+    <!-- "Seen": the logs test of later jobs ignores journal errors, core
+         dumps and failed units older than the moment the logs stage of
+         jobId finished. Stored by vegad, so every frontend sees the same
+         cutoff. NotSupported when jobId has no finished logs stage
+         (capability "diagnostics-actions-v1").
+         polkit: org.lyraos.vega.hardware.diagnose -->
+    <method name="MarkLogsSeen">
+      <arg name="jobId" type="u" direction="in"/>
+    </method>
+
+    <!-- The weekly check (capability "diagnostics-periodic-v1"): the light,
+         read-only tests (disk-health, logs, platform, security) run by
+         vegad-health-check.timer, compared with the previous run. Only what is
+         new counts: a new attention or fail finding, SMART wear up more than 5
+         points in 30 days, security patches pending for over 7 days. -->
+
+    <!-- Whether the timer is on and how often: "weekly" or "daily".
+         polkit: none (read-only) -->
+    <method name="GetPeriodic">
+      <arg name="enabled" type="b" direction="out"/>
+      <arg name="frequency" type="s" direction="out"/>
+    </method>
+
+    <!-- Turns the check on or off for the whole system. NotSupported for an
+         unknown frequency. polkit: org.lyraos.vega.hardware.diagnose -->
+    <method name="SetPeriodic">
+      <arg name="enabled" type="b" direction="in"/>
+      <arg name="frequency" type="s" direction="in"/>
+    </method>
+
+    <!-- The last periodic run: (jobId, finished unix time, novelties, stages,
+         noveltyTexts). stages are (id, verdict, summary); noveltyTexts are the
+         localized texts of what was new. jobId 0 means none ran yet.
+         polkit: org.lyraos.vega.hardware.read-admin (allow_active yes, no
+         prompt) -->
+    <method name="LastPeriodic">
+      <arg name="jobId" type="u" direction="out"/>
+      <arg name="finished" type="x" direction="out"/>
+      <arg name="novelties" type="u" direction="out"/>
+      <arg name="stages" type="a(sss)" direction="out"/>
+      <arg name="noveltyTexts" type="as" direction="out"/>
+    </method>
+
+    <!-- A periodic run found something new; count is at least 1. -->
+    <signal name="Novelties">
+      <arg name="jobId" type="u"/>
+      <arg name="count" type="u"/>
+    </signal>
 
     <!-- Progress of the current stage. -->
     <signal name="Progress">

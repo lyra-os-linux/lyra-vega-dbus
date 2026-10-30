@@ -156,6 +156,11 @@ mais recentes.
 | `enable-firewall` | `security.firewall-off` | `systemctl enable --now firewalld` (`diagnostics-v3`) |
 | `close-port` | `security.exposed-port` | tira o serviço ou a porta da zona, permanente e em execução (`diagnostics-v3`) |
 | `apply-security-patches` | `security.patches-pending` | `zypper patch --category security`, dentro do snapshot (`diagnostics-v3`) |
+| `reconnect` | `network.no-link` | liga o Wi-Fi se preciso e conecta o dispositivo (`diagnostics-v4`, sem snapshot) |
+| `renew-dhcp` | `network.no-address` | reaplica a conexão, o que renova o DHCP (`diagnostics-v4`, sem snapshot) |
+| `disable-wait-online` | `boot.wait-online` | desabilita o `NetworkManager-wait-online` se nada mais quer o `network-online.target` (`diagnostics-v5`) |
+| `disable-service` | `boot.slow-service` | desabilita serviços que o preset da imagem não habilita (`diagnostics-v5`) |
+| `temporary-dns` | `network.dns-failed` | DNS público (1.1.1.1 e 9.9.9.9) só na ativação atual; o perfil salvo não muda (`diagnostics-v4`, sem snapshot) |
 
 Nada que mexa em disco, partição ou sistema de arquivos tem conserto
 automático: erros de SMART, scrub ou btrfs pedem backup e orientação.
@@ -172,3 +177,69 @@ desconhecido, ou remédio que não está no relatório dele).
 
 Polkit: `org.lyraos.vega.hardware.repair` (`auth_admin`, sem retenção: altera
 o sistema).
+
+## Ações por achado (`diagnostics-actions-v1`)
+
+- `Remedies(jobId) -> a(sus)`: `(stage, findingIndex, remedy)` de cada achado
+  com remédio do relatório (`jobId` 0 = o mais recente). `findingIndex` é a
+  posição do achado dentro da etapa. Sem textos, dados brutos nem argumentos;
+  leitura pública, sem polkit. Serve para o frontend mostrar **Corrigir** na
+  lista de testes sem abrir o relatório.
+- `RepairFindings(jobId, findings a(su)) -> repairJobId`: como `Repair`, mas
+  só para os achados `(stage, findingIndex)` indicados, cada um com os
+  `remedyArgs` que tem no relatório gravado. Fechar uma porta não fecha as
+  outras. `NotSupported` para job desconhecido, índice fora do intervalo ou
+  achado sem remédio. Polkit `org.lyraos.vega.hardware.repair`.
+- `MarkLogsSeen(jobId)`: o teste `logs` dos jobs seguintes ignora erros do
+  journal, core dumps e serviços com falha anteriores ao fim da etapa `logs`
+  desse job. O corte fica no vegad
+  (`/var/lib/vega/diagnostics/logs-seen.json`) e vale para todos os
+  frontends; o relatório do `logs` traz a métrica `seenUntil`.
+  `NotSupported` se o job não tem a etapa `logs` concluída. Polkit
+  `org.lyraos.vega.hardware.diagnose`.
+
+## Teste de rede (`diagnostics-v4`)
+
+O teste `network` verifica, em ordem, enlace, endereço, gateway, DNS e
+internet (a checagem do NetworkManager, que detecta portal cativo). A métrica
+`steps` lista `{id, status, detail}` com `status` igual a `ok`, `fail`, `warn`
+ou `skipped`; os passos depois da primeira falha ficam `skipped`. A métrica
+`portalUrl` traz o endereço de checagem, que o frontend abre no navegador no
+achado `network.captive-portal`.
+
+`Start`, `Cancel` e `Report` de um job que é só o teste `network` (ou os
+remédios dele) usam `org.lyraos.vega.network.diagnose`, que a sessão local
+ativa tem sem senha. Os consertos continuam em
+`org.lyraos.vega.hardware.repair`.
+
+## Teste de boot (`diagnostics-v5`)
+
+O teste `boot` lê o último boot: a métrica `phases` traz os segundos de cada
+fase do `systemd-analyze time` (`firmware`, `loader`, `kernel`, `initrd`,
+`userspace`; as ausentes não existem nesta máquina), `totalSeconds`,
+`graphicalSeconds` (até o login, contado no userspace) e `slowest`, até cinco
+`{unit, seconds}` que começaram antes do login gráfico. Achados:
+`boot.slow`, `boot.wait-online`, `boot.missing-device` e `boot.slow-service`.
+Os remédios conferem tudo de novo ao rodar e dizem no resumo como desfazer.
+
+## Verificação periódica (`diagnostics-periodic-v1`)
+
+O `vegad-health-check.timer` (semanal por padrão, ou diário) roda os testes
+leves `disk-health`, `logs`, `platform` e `security` com prioridade baixa, pelo
+`Start` com a opção `periodic` (só aceita do root). Ele é pulado em silêncio
+com a bateria abaixo de 30% sem carregador ou enquanto outra operação roda.
+
+No fim, o vegad compara com a execução periódica anterior
+(`/var/lib/vega/diagnostics/periodic.json`). Só conta como novidade:
+
+- um achado de atenção ou falha que não existia (código e argumentos do
+  conserto, para que uma porta exposta nova conte mesmo que outra já existisse);
+- o desgaste do SSD (`percentUsed`) subindo mais de 5 pontos em 30 dias;
+- `security.patches-pending` presente há mais de 7 dias (avisado uma vez).
+
+Com novidades, sai o sinal `Novelties(jobId, count)`. `LastPeriodic()` devolve
+a última execução (job, horário, novidades, as etapas e os textos das
+novidades), sem senha, para o notificador da sessão avisar o que aconteceu
+enquanto o usuário estava fora. `GetPeriodic()` e `SetPeriodic(enabled,
+frequency)` ligam, desligam e escolhem `weekly` ou `daily`; mudar pede
+`org.lyraos.vega.hardware.diagnose`.
