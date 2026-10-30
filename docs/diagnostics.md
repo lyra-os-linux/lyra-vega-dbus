@@ -131,6 +131,9 @@ mais recentes.
 - `severity` vale `info`, `attention` ou `fail`. `info` agrupa o ruído
   conhecido (bugs de firmware ACPI, avisos comuns de boot e afins).
 - `code` é estável. Os frontends traduzem e agrupam por ele, nunca pelo `text`.
+- `storage.low-space` (atenção, teste `platform`): a raiz tem menos de 10% ou
+  menos de 5 GiB livres. Não tem remédio; com `space-cleanup-v1`, o frontend
+  oferece o atalho para a limpeza (ver [cleanup.md](cleanup.md)).
 - `metrics` varia por teste. As chaves ausentes não foram medidas.
 - Com `redact = true`, saem os números de série, endereços MAC, SSIDs, o
   hostname e o nome das pastas em `/home`.

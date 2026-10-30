@@ -1,5 +1,6 @@
 mod backup;
 mod bluetooth;
+mod cleanup;
 mod client;
 mod datetime;
 mod diagnostics;
@@ -27,6 +28,11 @@ pub use backup::{
 };
 pub use bluetooth::{
     BluetoothClient, BluetoothClientError, BluetoothDevice, BluetoothStatus, ZbusBluetoothClient,
+};
+pub use cleanup::{
+    CLEANUP_CATEGORY_IDS, CleanupCategory, CleanupCategoryFinished, CleanupClient,
+    CleanupClientError, CleanupDetail, CleanupEvent, CleanupEventStream, CleanupFinished,
+    CleanupProgress, LOW_SPACE_FINDING, SPACE_CLEANUP_CAPABILITY, ZbusCleanupClient,
 };
 pub use client::{DbusConnectionError, VegaDbus};
 pub use datetime::{DateTimeClient, DateTimeClientError, DateTimeStatus, ZbusDateTimeClient};

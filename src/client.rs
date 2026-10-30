@@ -1,8 +1,9 @@
 use super::{
-    ZbusBackupClient, ZbusBluetoothClient, ZbusDateTimeClient, ZbusDiagnosticsClient,
-    ZbusFirewallClient, ZbusHardwareClient, ZbusKernelClient, ZbusLogsClient, ZbusMetadataClient,
-    ZbusMonitorClient, ZbusNetworkClient, ZbusPreparationClient, ZbusServicesClient,
-    ZbusSnapshotsClient, ZbusSoftwareClient, ZbusStorageClient, ZbusSystemClient, ZbusUsersClient,
+    ZbusBackupClient, ZbusBluetoothClient, ZbusCleanupClient, ZbusDateTimeClient,
+    ZbusDiagnosticsClient, ZbusFirewallClient, ZbusHardwareClient, ZbusKernelClient,
+    ZbusLogsClient, ZbusMetadataClient, ZbusMonitorClient, ZbusNetworkClient,
+    ZbusPreparationClient, ZbusServicesClient, ZbusSnapshotsClient, ZbusSoftwareClient,
+    ZbusStorageClient, ZbusSystemClient, ZbusUsersClient,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,6 +105,10 @@ impl VegaDbus {
 
     pub fn diagnostics(&self) -> ZbusDiagnosticsClient {
         ZbusDiagnosticsClient::from_connection(self.connection.clone())
+    }
+
+    pub fn cleanup(&self) -> ZbusCleanupClient {
+        ZbusCleanupClient::from_connection(self.connection.clone())
     }
 }
 
