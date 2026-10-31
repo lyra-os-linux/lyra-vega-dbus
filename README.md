@@ -15,7 +15,7 @@ Go do lado do daemon deve ser mantida em sincronia com `dbus/`.
 
 ```toml
 [dependencies]
-lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.1.22" }
+lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.2.0" }
 ```
 
 Veja [a correlação de transações com a instância do daemon](docs/software-owner-lifetime.md)
@@ -38,19 +38,14 @@ cargo clippy --locked --all-targets --all-features -- -D warnings
 
 Licenciado sob GPL-3.0.
 
-## NVIDIA capability
+## NVIDIA (aposentado)
 
-`nvidia-official-v1` restores `InstallNvidia(bool)` for the qualified optional
-Desktop/Server flow, with explicit review, Polkit authorization and recovery checks.
-Gate installation on this capability; older daemons retired the endpoint.
-`NvidiaStatus`/`CheckNvidia` remain public reads, with no authorization prompt
-or suspend-policy mutation. Their tuples and signatures remain compatible.
-`nvidia-recovery-v1` adds `NvidiaRecovery() -> (bssss)`: availability, strategy,
-opaque reference, state and technical detail. Ext4 references never occupy the
-numeric Snapper field. Availability is a preflight, not proof of a stored backup.
-
-See [the daemon contract](https://github.com/lyra-os-linux/vegad/blob/main/docs/nvidia.md)
-for state semantics and qualified-version limits.
+O Vega não gerencia mais drivers NVIDIA (spec `remove-nvidia-integration` do
+`lyra-ecosystem`). `InstallNvidia`, `NvidiaStatus`, `NvidiaRecovery`,
+`CheckNvidia` e `SwitchNvidiaDriver` continuam no XML do v1, marcados como
+`Deprecated`, e o daemon sempre responde `NotSupported`. As capacidades
+`nvidia-official-v1` e `nvidia-recovery-v1` não são mais anunciadas, e o crate
+não expõe esses métodos a partir da 5.2.0.
 
 ## Space cleanup capability
 
