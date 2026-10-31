@@ -143,42 +143,6 @@ pub struct SoftwareConsoleLine {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NvidiaStatus {
-    pub supported: bool,
-    pub installed: bool,
-    pub reboot_required: bool,
-    pub gpu: String,
-    pub secure_boot: String,
-    pub state: String,
-    pub detail: String,
-    pub recovery_snapshot: u32,
-}
-
-type NvidiaStatusRow = (bool, bool, bool, String, String, String, String, u32);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NvidiaRecovery {
-    pub available: bool,
-    pub kind: String,
-    pub reference: String,
-    pub state: String,
-    pub detail: String,
-}
-
-type NvidiaRecoveryRow = (bool, String, String, String, String);
-impl From<NvidiaRecoveryRow> for NvidiaRecovery {
-    fn from(row: NvidiaRecoveryRow) -> Self {
-        Self {
-            available: row.0,
-            kind: row.1,
-            reference: row.2,
-            state: row.3,
-            detail: row.4,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NonFreeFirmwareStatus {
     pub detected: bool,
     pub installed: bool,
@@ -224,21 +188,6 @@ impl From<NonFreeFirmwareStatusRow> for NonFreeFirmwareStatus {
             installed: row.1,
             detail: row.2,
             packages: row.3,
-        }
-    }
-}
-
-impl From<NvidiaStatusRow> for NvidiaStatus {
-    fn from(row: NvidiaStatusRow) -> Self {
-        Self {
-            supported: row.0,
-            installed: row.1,
-            reboot_required: row.2,
-            gpu: row.3,
-            secure_boot: row.4,
-            state: row.5,
-            detail: row.6,
-            recovery_snapshot: row.7,
         }
     }
 }
@@ -322,19 +271,6 @@ pub trait SoftwareClient: Send + Sync {
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> Result<u32, SoftwareClientError>;
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError>;
     async fn clear_native_cache(&self) -> Result<u32, SoftwareClientError>;
-    async fn nvidia_status(&self) -> Result<NvidiaStatus, SoftwareClientError>;
-    /// Public recovery preflight and reference; requires nvidia-recovery-v1.
-    async fn nvidia_recovery(&self) -> Result<NvidiaRecovery, SoftwareClientError> {
-        Err(SoftwareClientError::Unavailable(
-            "NVIDIA recovery is not supported by this client".into(),
-        ))
-    }
-    /// Optional qualified NVIDIA installation. Require the `nvidia-official-v1`
-    /// metadata capability and explicit user confirmation; authorization occurs
-    /// only for installation. Earlier daemons return NotSupported. The wire
-    /// signature is unchanged. Cancellation must not start a transaction.
-    async fn install_nvidia(&self, confirmed: bool) -> Result<u32, SoftwareClientError>;
-    async fn check_nvidia(&self) -> Result<(bool, String), SoftwareClientError>;
     async fn non_free_firmware_status(&self) -> Result<NonFreeFirmwareStatus, SoftwareClientError>;
     /// Legacy v1 endpoint: the daemon returns NotSupported without installing firmware.
     async fn install_non_free_firmware(&self, confirmed: bool) -> Result<u32, SoftwareClientError>;
@@ -367,10 +303,6 @@ trait Software {
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> zbus::Result<u32>;
     async fn clear_cache(&self) -> zbus::Result<u32>;
     async fn clear_native_cache(&self) -> zbus::Result<u32>;
-    async fn nvidia_status(&self) -> zbus::Result<NvidiaStatusRow>;
-    async fn nvidia_recovery(&self) -> zbus::Result<NvidiaRecoveryRow>;
-    async fn install_nvidia(&self, confirmed: bool) -> zbus::Result<u32>;
-    async fn check_nvidia(&self) -> zbus::Result<(bool, String)>;
     async fn non_free_firmware_status(&self) -> zbus::Result<NonFreeFirmwareStatusRow>;
     async fn install_non_free_firmware(&self, confirmed: bool) -> zbus::Result<u32>;
 
@@ -794,22 +726,6 @@ impl SoftwareClient for ZbusSoftwareClient {
 
     async fn clear_native_cache(&self) -> Result<u32, SoftwareClientError> {
         proxy_call!(self, clear_native_cache())
-    }
-
-    async fn nvidia_status(&self) -> Result<NvidiaStatus, SoftwareClientError> {
-        proxy_call!(self, nvidia_status()).map(Into::into)
-    }
-
-    async fn nvidia_recovery(&self) -> Result<NvidiaRecovery, SoftwareClientError> {
-        proxy_call!(self, nvidia_recovery()).map(Into::into)
-    }
-
-    async fn install_nvidia(&self, confirmed: bool) -> Result<u32, SoftwareClientError> {
-        proxy_call!(self, install_nvidia(confirmed))
-    }
-
-    async fn check_nvidia(&self) -> Result<(bool, String), SoftwareClientError> {
-        proxy_call!(self, check_nvidia())
     }
 
     async fn non_free_firmware_status(&self) -> Result<NonFreeFirmwareStatus, SoftwareClientError> {

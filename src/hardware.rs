@@ -41,8 +41,6 @@ impl std::error::Error for HardwareClientError {}
 pub trait HardwareClient: Send + Sync {
     async fn inventory(&self) -> Result<HardwareInventory, HardwareClientError>;
     async fn firmware_status(&self) -> Result<String, HardwareClientError>;
-    /// Legacy v1 endpoint: the daemon returns NotSupported without changing drivers.
-    async fn switch_nvidia_driver(&self, driver: &str) -> Result<(), HardwareClientError>;
 }
 
 #[zbus::proxy(
@@ -55,7 +53,6 @@ trait Hardware {
     async fn firmware_status(&self) -> zbus::Result<String>;
     async fn inventory_localized(&self, locale: &str) -> zbus::Result<(String, String, String)>;
     async fn firmware_status_localized(&self, locale: &str) -> zbus::Result<String>;
-    async fn switch_nvidia_driver(&self, driver: &str) -> zbus::Result<()>;
 }
 
 pub struct ZbusHardwareClient {
@@ -102,14 +99,6 @@ impl HardwareClient for ZbusHardwareClient {
         self.proxy()
             .await?
             .firmware_status_localized(crate::current_locale())
-            .await
-            .map_err(HardwareClientError::unavailable)
-    }
-
-    async fn switch_nvidia_driver(&self, driver: &str) -> Result<(), HardwareClientError> {
-        self.proxy()
-            .await?
-            .switch_nvidia_driver(driver)
             .await
             .map_err(HardwareClientError::unavailable)
     }
