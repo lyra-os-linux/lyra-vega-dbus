@@ -15,7 +15,7 @@ Go do lado do daemon deve ser mantida em sincronia com `dbus/`.
 
 ```toml
 [dependencies]
-lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.2.0" }
+lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.3.0" }
 ```
 
 Veja [a correlação de transações com a instância do daemon](docs/software-owner-lifetime.md)

@@ -118,6 +118,14 @@
       <arg name="transactionId" type="u" direction="out"/>
     </method>
 
+    <method name="RefreshRepos">
+      <!-- polkit: org.lyraos.vega.software.manage-repos -->
+      <!-- Atualiza agora os metadados de todos os repositórios ativos
+           (zypper refresh), sem esperar a validade da última verificação
+           de atualizações; ao terminar, recalcula as atualizações. -->
+      <arg name="transactionId" type="u" direction="out"/>
+    </method>
+
     <method name="ClearCache">
       <!-- polkit: org.lyraos.vega.software.clear-cache -->
       <arg name="transactionId" type="u" direction="out"/>

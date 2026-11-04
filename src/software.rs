@@ -269,6 +269,7 @@ pub trait SoftwareClient: Send + Sync {
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> Result<(), SoftwareClientError>;
     async fn add_repo(&self, name: &str, url: &str) -> Result<u32, SoftwareClientError>;
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> Result<u32, SoftwareClientError>;
+    async fn refresh_repos(&self) -> Result<u32, SoftwareClientError>;
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError>;
     async fn clear_native_cache(&self) -> Result<u32, SoftwareClientError>;
     async fn non_free_firmware_status(&self) -> Result<NonFreeFirmwareStatus, SoftwareClientError>;
@@ -301,6 +302,7 @@ trait Software {
     async fn set_repo_enabled(&self, repo: &str, enabled: bool) -> zbus::Result<()>;
     async fn add_repo(&self, name: &str, url: &str) -> zbus::Result<u32>;
     async fn trust_repo_key(&self, repo: &str, key_id: &str) -> zbus::Result<u32>;
+    async fn refresh_repos(&self) -> zbus::Result<u32>;
     async fn clear_cache(&self) -> zbus::Result<u32>;
     async fn clear_native_cache(&self) -> zbus::Result<u32>;
     async fn non_free_firmware_status(&self) -> zbus::Result<NonFreeFirmwareStatusRow>;
@@ -720,6 +722,10 @@ impl SoftwareClient for ZbusSoftwareClient {
         proxy_call!(self, trust_repo_key(repo, key_id))
     }
 
+    async fn refresh_repos(&self) -> Result<u32, SoftwareClientError> {
+        proxy_call!(self, refresh_repos())
+    }
+
     async fn clear_cache(&self) -> Result<u32, SoftwareClientError> {
         proxy_call!(self, clear_cache())
     }
@@ -800,6 +806,7 @@ mod tests {
             ),
             ("ClearCache".into(), args(&[("out", "u")])),
             ("ClearNativeCache".into(), args(&[("out", "u")])),
+            ("RefreshRepos".into(), args(&[("out", "u")])),
             ("CheckNvidia".into(), args(&[("out", "b"), ("out", "s")])),
             (
                 "GetPackageDetails".into(),
