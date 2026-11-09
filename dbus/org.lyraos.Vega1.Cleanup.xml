@@ -18,6 +18,9 @@
            old-kernels     kernels purge-kernels would remove, following
                            multiversion.kernels; never the running kernel
                            nor the newest one; runs inside a snapshot pair
+                           when Snapper is configured (best effort: without
+                           Snapper, as on the Server, or if the pre snapshot
+                           fails, it runs without one)
            snapshots       snapper cleanup number and timeline, which follow
                            the configured retention policy
          Unknown ids are rejected with NotSupported.
@@ -34,6 +37,10 @@
            "size=unknown"       bytes cannot be measured beforehand
                                 (snapshots without btrfs quotas)
            "minimum"            count is a lower bound
+           "deferred"           bytes go back to the disk only when the
+                                snapshots still holding the files are
+                                cleaned (old-kernels with Snapper);
+                                CategoryFinished reports 0 freed bytes
            "reason=<id>"        why canClean is false; frontends localize:
                                   nothing                nothing to clean
                                   busy                   another operation runs
