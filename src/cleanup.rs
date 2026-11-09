@@ -50,6 +50,9 @@ pub struct CleanupDetail {
     pub size_unknown: bool,
     /// `count` is a lower bound (`minimum`).
     pub minimum: bool,
+    /// The bytes go back to the disk only when the snapshots still holding
+    /// the files are cleaned (`deferred`); cleaning reports 0 freed bytes.
+    pub deferred: bool,
     /// Why `can_clean` is false (`nothing`, `busy`, `missing-tool:<package>`,
     /// `not-configured`, `protected`, `failed`); frontends localize it.
     pub reason: Option<String>,
@@ -69,6 +72,7 @@ impl CleanupDetail {
                 }
                 Some(("item", item)) if !item.is_empty() => detail.items.push(item.to_owned()),
                 None if token == "minimum" => detail.minimum = true,
+                None if token == "deferred" => detail.deferred = true,
                 _ => {}
             }
         }
@@ -413,6 +417,7 @@ mod tests {
             "count=",
             "size=unknown",
             "minimum",
+            "deferred",
             "reason=",
             "item=",
             "missing-tool:",
@@ -447,6 +452,11 @@ mod tests {
         assert_eq!(blocked.count, None);
         assert_eq!(CleanupDetail::parse(""), CleanupDetail::default());
         assert_eq!(CleanupDetail::parse("count=x").count, None);
+        assert!(!detail.deferred);
+
+        let kernels = CleanupDetail::parse("count=2;deferred;item=6.12.0-160100.5-default");
+        assert!(kernels.deferred && !kernels.minimum);
+        assert_eq!(kernels.count, Some(2));
     }
 
     #[test]
