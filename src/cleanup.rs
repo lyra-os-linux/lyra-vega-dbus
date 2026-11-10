@@ -506,8 +506,9 @@ mod tests {
     fn real_daemon_scans_without_deleting() {
         futures_lite::future::block_on(async {
             let client = ZbusCleanupClient::connect().await.unwrap();
-            // Scan is a polkit-checked read: a bus without polkit (CI) denies
-            // it, which still proves the method exists.
+            // Scan is a polkit-checked read. A denial only proves the method
+            // exists, not that its contract holds, so it is not a success
+            // (lyra-vega-dbus#21): run this test where polkit allows Scan.
             match client.scan().await {
                 Ok(categories) => {
                     let ids: Vec<&str> = categories.iter().map(|c| c.id.as_str()).collect();
@@ -517,7 +518,10 @@ mod tests {
                     );
                 }
                 Err(CleanupClientError::Failed(detail))
-                    if detail.contains("AuthorizationFailed") => {}
+                    if detail.contains("AuthorizationFailed") =>
+                {
+                    panic!("autorização recusada: o contrato NÃO foi verificado ({detail})")
+                }
                 Err(error) => panic!("{error:?}"),
             }
             drop(client.subscribe().await.unwrap());
