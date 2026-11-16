@@ -14,6 +14,7 @@ mod mock;
 mod monitor;
 mod network;
 mod preparation;
+mod profiles;
 mod services;
 mod snapshots;
 mod software;
@@ -61,6 +62,12 @@ pub use monitor::{
 pub use network::{
     NetworkClient, NetworkClientError, NetworkInterface, ProxyConfig, WifiNetwork,
     ZbusNetworkClient,
+};
+pub use profiles::{
+    AUDIO_LOWLATENCY_KERNEL_PROFILE, AUDIO_LOWLATENCY_PROFILE, ProfileEvent, ProfileEventStream,
+    ProfilesClient, ProfilesClientError, SAP_ABAP_TRIAL_PROFILE, SYSTEM_PROFILE_IDS,
+    SYSTEM_PROFILES_CAPABILITY, SystemProfile, SystemProfileFinished, SystemProfileProgress,
+    ZbusProfilesClient,
 };
 pub use services::{ManagedService, ServicesClient, ServicesClientError, ZbusServicesClient};
 pub use snapshots::{Snapshot, SnapshotsClient, SnapshotsClientError, ZbusSnapshotsClient};

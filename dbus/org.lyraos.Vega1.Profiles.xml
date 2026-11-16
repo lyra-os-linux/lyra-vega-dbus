@@ -1,0 +1,81 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/lyraos/Vega1">
+  <interface name="org.lyraos.Vega1.Profiles">
+    <!-- System profiles: fixed, known sets of system settings that vegad
+         applies and undoes as a unit. Announced by the "system-profiles-v1"
+         capability in Metadata.Capabilities; frontends must check it before
+         calling any member of this interface. vegad never accepts free keys
+         or values, only the profile ids below.
+
+         Profile ids:
+           sap-abap-trial           /etc/sysctl.d/90-lyra-sap-abap-trial.conf
+                                    with vm.max_map_count, fs.file-max and
+                                    fs.aio-max-nr for the SAP ABAP Platform
+                                    Trial, applied at once by sysctl;
+                                    disabling removes the file and restores
+                                    the default values
+           audio-lowlatency         installs pipewire-jack, writes
+                                    /etc/security/limits.d/90-lyra-audio.conf
+                                    (@audio rtprio 95, memlock unlimited) and
+                                    adds the calling user to the audio group
+                                    when missing; disabling removes the file
+                                    and pipewire-jack (only if this profile
+                                    installed it) and takes the user out of
+                                    the group only if this profile added them
+           audio-lowlatency-kernel  adds "preempt=full threadirqs" to the
+                                    kernel command line; takes effect on the
+                                    next boot; disabling restores the exact
+                                    previous command line
+         Unknown ids are rejected with NotSupported.
+
+         Every change is a job: vegad takes a Snapper snapshot first (when
+         Snapper is configured) and, if a step fails, undoes the steps
+         already done, so the profile is either fully on or fully off.
+         Enabling an enabled profile or disabling a disabled one is a no-op
+         that still finishes with "ok". Each change is logged with the
+         calling uid.
+
+         Errors (org.lyraos.Vega1.Error.*):
+           Busy          another profile job, a diagnostic, cleanup or a
+                         Zypper, snapshot or backup transaction is running
+           NotSupported  unknown profile id -->
+
+    <!-- SystemProfile struct: (id, enabled, restartPending)
+         enabled: the profile is applied to the configuration.
+         restartPending: the change (enabling or disabling) only takes full
+         effect after a reboot (audio-lowlatency-kernel) or a new login
+         (audio-lowlatency: limits and group). Always false for
+         sap-abap-trial, which applies at once. -->
+    <method name="ListSystemProfiles">
+      <!-- polkit: none (read-only) -->
+      <arg name="profiles" type="a(sbb)" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;SystemProfile&gt;"/>
+    </method>
+
+    <!-- Enables or disables one profile and returns the job id.
+         ProfileProgress and ProfileFinished follow. -->
+    <method name="SetSystemProfile">
+      <!-- polkit: org.lyraos.vega.profiles.manage (auth_admin) -->
+      <arg name="id" type="s" direction="in"/>
+      <arg name="enabled" type="b" direction="in"/>
+      <arg name="jobId" type="u" direction="out"/>
+    </method>
+
+    <signal name="ProfileProgress">
+      <arg name="jobId" type="u"/>
+      <arg name="id" type="s"/>
+      <arg name="percent" type="u"/>
+      <arg name="message" type="s"/>
+    </signal>
+
+    <!-- result: ok | failed. On failed, the steps already done were undone
+         and detail carries the reason. -->
+    <signal name="ProfileFinished">
+      <arg name="jobId" type="u"/>
+      <arg name="id" type="s"/>
+      <arg name="result" type="s"/>
+      <arg name="detail" type="s"/>
+    </signal>
+  </interface>
+</node>
