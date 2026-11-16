@@ -15,7 +15,7 @@ Go do lado do daemon deve ser mantida em sincronia com `dbus/`.
 
 ```toml
 [dependencies]
-lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.3.0" }
+lyra-vega-dbus = { git = "https://github.com/lyra-os-linux/lyra-vega-dbus", tag = "v5.5.0" }
 ```
 
 Veja [a correlação de transações com a instância do daemon](docs/software-owner-lifetime.md)
@@ -53,6 +53,14 @@ não expõe esses métodos a partir da 5.2.0.
 system categories (core dumps, journal, package cache, unused Flatpak
 runtimes, old kernels, snapshot cleanup) without deleting anything, and
 `Clean` runs them as a job. See [the cleanup contract](docs/cleanup.md).
+
+## System profiles capability
+
+`system-profiles-v1` announces `org.lyraos.Vega1.Profiles`: fixed, known sets
+of system settings (`sap-abap-trial`, `audio-lowlatency`,
+`audio-lowlatency-kernel`) that vegad applies and undoes as a unit, behind a
+Snapper snapshot and the `org.lyraos.vega.profiles.manage` polkit action. See
+[the profiles contract](docs/profiles.md).
 
 ## Diagnostics capability
 
